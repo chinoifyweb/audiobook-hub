@@ -12,7 +12,21 @@
       "mcp__Claude_Preview__preview_start",
       "Bash(taskkill /F /IM node.exe)",
       "Bash(taskkill //F //IM node.exe)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(gh repo:*)",
+      "Bash(where gh:*)",
+      "Bash(winget install:*)",
+      "Bash(npm list:*)",
+      "Bash(curl -sL https://github.com/cli/cli/releases/download/v2.67.0/gh_2.67.0_windows_amd64.zip -o C:/Users/user/Desktop/gh.zip)",
+      "Read(//c/Users/user/Desktop/**)",
+      "Bash(unzip -o gh.zip -d gh_cli)",
+      "Bash(C:/Users/user/Desktop/gh_cli/bin/gh.exe auth:*)",
+      "Bash(C:/Users/user/Desktop/gh_cli/bin/gh.exe repo:*)",
+      "Bash(npx -y @netlify/mcp@latest --site-id 45d51d02-55fc-4274-b307-fa39e88abcae --no-wait --proxy-path \"https://netlify-mcp.netlify.app/proxy/eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..E5MgPZ4LrCatjxog.I-yt9k7VEZnUcJ0ynDGOjqXL3sLpu_N84OHDzNR_hWD6kwQac_T2RalRDaanWw7S5u0bsLH8lX8CtgI2UhXgjuadPdd9_Vp1mV_Xvsbu7TLhBmCzDMRq_LOEB9ieR_jdj5xUFDFoafcfX2ebxwckdE5trSUEEfGrzOfp1NcHT4kahB6S8jPgzcVWlb3x6pgzBZ_3MPN2FqC_8DkFF-qukOZKbdS9zhWcdJvvrfaMRN2tIc9y3i_C9YMQilw9_BkrFjubzt5YN6X0dWN60NhXtgVMgW_wJ0TCGs6JYoICHWxMQW9zJQQKPGvBK82AfWxb1EQ5iXe2zafsWaSonI3j2zrpFp4N-QRaVtP_rsUSL-DvZhpkUg.9PaNMVXeHRobxPUPlGUz4w\")",
+      "Bash(find /c/Users/user/Desktop/Audiobook/src/components -type f -name *.tsx -o -name *.ts)",
+      "Bash(ls -la C:/Users/user/Desktop/Audiobook/src/app/'\\(public\\)'/)",
+      "Bash(find C:/Users/user/Desktop/Audiobook/src/app/'\\(public\\)' -name \"*.tsx\")",
+      "Bash(npx next:*)"
     ]
   }
 }

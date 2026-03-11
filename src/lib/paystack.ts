@@ -83,6 +83,7 @@ export function verifyWebhookSignature(
   body: string,
   signature: string
 ): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const crypto = require("crypto");
   const hash = crypto
     .createHmac("sha512", PAYSTACK_SECRET_KEY)
