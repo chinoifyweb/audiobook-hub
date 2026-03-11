@@ -120,32 +120,47 @@ function buildWhereClause(searchParams: SearchParams): Prisma.BookWhereInput {
 export default async function BookCatalogPage({
   searchParams,
 }: {
-  searchParams: Promise<SearchParams>;
+  searchParams: SearchParams | Promise<SearchParams>;
 }) {
-  const params = await searchParams;
-  const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
-  const sort = (params.sort ?? "newest") as SortOption;
+  // Handle both sync and async searchParams (Next.js 14 compatibility)
+  const params = typeof searchParams === 'object' && 'then' in searchParams
+    ? await searchParams
+    : searchParams as SearchParams;
+  const page = Math.max(1, parseInt(params?.page ?? "1", 10) || 1);
+  const sort = (params?.sort ?? "newest") as SortOption;
 
-  const where = buildWhereClause(params);
-  const orderBy = getOrderBy(sort);
+  type BookWithAuthor = Awaited<ReturnType<typeof prisma.book.findMany>>[number] & {
+    author: { id: string; penName: string | null };
+  };
+  let books: BookWithAuthor[] = [];
+  let totalCount = 0;
 
-  const [books, totalCount] = await Promise.all([
-    prisma.book.findMany({
-      where,
-      orderBy,
-      skip: (page - 1) * BOOKS_PER_PAGE,
-      take: BOOKS_PER_PAGE,
-      include: {
-        author: {
-          select: {
-            id: true,
-            penName: true,
+  try {
+    const where = buildWhereClause(params ?? {});
+    const orderBy = getOrderBy(sort);
+
+    const result = await Promise.all([
+      prisma.book.findMany({
+        where,
+        orderBy,
+        skip: (page - 1) * BOOKS_PER_PAGE,
+        take: BOOKS_PER_PAGE,
+        include: {
+          author: {
+            select: {
+              id: true,
+              penName: true,
+            },
           },
         },
-      },
-    }),
-    prisma.book.count({ where }),
-  ]);
+      }),
+      prisma.book.count({ where }),
+    ]);
+    books = result[0] as BookWithAuthor[];
+    totalCount = result[1];
+  } catch (error) {
+    console.error("Error fetching books:", error);
+  }
 
   const totalPages = Math.ceil(totalCount / BOOKS_PER_PAGE);
 
