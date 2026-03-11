@@ -27,7 +27,19 @@
       "Bash(ls -la C:/Users/user/Desktop/Audiobook/src/app/'\\(public\\)'/)",
       "Bash(find C:/Users/user/Desktop/Audiobook/src/app/'\\(public\\)' -name \"*.tsx\")",
       "Bash(npx next:*)",
-      "Bash(npx kill-port:*)"
+      "Bash(npx kill-port:*)",
+      "Bash(cmd.exe /c \"taskkill /PID 14224 /F\")",
+      "Bash(netstat -ano)",
+      "Bash(findstr :3000)",
+      "Bash(npx -y @netlify/mcp@latest --site-id 45d51d02-55fc-4274-b307-fa39e88abcae --no-wait --proxy-path \"https://netlify-mcp.netlify.app/proxy/eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..-AlNhY9ahjwyPjJi.ROU31YR9bW336OHaI_EaMPouAdG-Nl0HcjKHP9pJySobDa9prQcgi49UoEYja0Rehd2HmBJVmtNlokOTS8IL5TcAWCpgnNcmSfGD1jezpQx0zNozBg3q-MCnFduzlRpIjpDLrAY02cdVEx1RF8Thl9EqRZN5IFbalyQ3m2pBmUrQ_y6RyXN2yqt-hDq4lrAzhEh-T7w77uXr2IM1dSuPS1ibaBSQO-AHVE8k18k6l9dj6UDHceFWdLsg8hFG2G173kGpQL4CIDO7gyMnU3VgfWtnqjFbXJu8NPcOQ1fwBiHVOIKKoiB9cMLZyPEZfH2CvuOxIFWgF3TzYqNZvgWH-LfzzIOk1OrnC7cobngRQ4tb4CR6cg.csf_GAN-0KTYD0mmkI0CWQ\")",
+      "Bash(npx netlify:*)",
+      "Bash(cmd.exe /c \"taskkill /IM node.exe /F\")",
+      "Bash(npm run:*)",
+      "Bash(vercel login:*)",
+      "Bash(vercel --yes)",
+      "Bash(vercel --yes --name audiobook-hub)",
+      "Bash(vercel env:*)",
+      "Bash(vercel --prod --yes)"
     ]
   }
 }

@@ -20,6 +20,8 @@ import {
   BookOpen,
 } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 const statusConfig: Record<
   string,
   { label: string; variant: "default" | "secondary" | "destructive" | "outline" }

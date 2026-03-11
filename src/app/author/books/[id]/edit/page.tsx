@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { EditBookForm } from "@/components/author/edit-book-form";
 
+export const dynamic = 'force-dynamic';
+
 export default async function EditBookPage({
   params,
 }: {

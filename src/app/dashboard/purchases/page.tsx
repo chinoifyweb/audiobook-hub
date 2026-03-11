@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, ExternalLink, BookOpen } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   successful: "default",
   pending: "outline",

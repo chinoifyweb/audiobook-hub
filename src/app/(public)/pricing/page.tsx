@@ -14,6 +14,8 @@ import { Separator } from "@/components/ui/separator";
 import { prisma } from "@/lib/db";
 import { formatPrice } from "@/lib/utils";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: "Pricing",
   description:

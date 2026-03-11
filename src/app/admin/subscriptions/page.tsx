@@ -6,6 +6,8 @@ import { formatPrice } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { SubscriptionsClient } from "./subscriptions-client";
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminSubscriptionsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== "admin") redirect("/login");

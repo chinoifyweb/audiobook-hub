@@ -21,6 +21,8 @@ import {
   BarChart3,
 } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 export default async function AuthorOverviewPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/login");

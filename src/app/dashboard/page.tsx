@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { LibraryContent, type LibraryBook } from "@/components/dashboard/library-content";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: "My Library — AudioShelf",
   description: "Your personal audiobook and ebook library",

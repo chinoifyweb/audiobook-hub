@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { AudioPlayer } from "@/components/player/audio-player";
 
+export const dynamic = 'force-dynamic';
+
 interface PlayerPageProps {
   params: { bookId: string };
 }

@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { BookCatalogFilters } from "./filters";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: "Browse Books | Audiobook Marketplace",
   description:

@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { SettingsClient } from "./settings-client";
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminSettingsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== "admin") redirect("/login");

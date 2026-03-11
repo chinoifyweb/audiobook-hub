@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { AuthorsClient } from "./authors-client";
 
+export const dynamic = 'force-dynamic';
+
 interface Props {
   searchParams: { search?: string; status?: string; page?: string };
 }

@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { EbookReader } from "./ebook-reader";
 
+export const dynamic = 'force-dynamic';
+
 interface ReaderPageProps {
   params: { bookId: string };
 }

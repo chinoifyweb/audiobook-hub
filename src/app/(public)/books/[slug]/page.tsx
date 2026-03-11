@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+export const dynamic = 'force-dynamic';
+
 // ─── Data Fetching ──────────────────────────────────────────────────────────
 
 async function getBook(slug: string) {

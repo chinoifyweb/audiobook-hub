@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db";
 
 import { UsersClient } from "./users-client";
 
+export const dynamic = 'force-dynamic';
+
 interface Props {
   searchParams: { search?: string; role?: string; page?: string };
 }

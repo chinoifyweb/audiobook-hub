@@ -27,6 +27,8 @@ import {
 } from "lucide-react";
 import { CancelSubscriptionButton } from "./cancel-button";
 
+export const dynamic = 'force-dynamic';
+
 const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   active: "default",
   attention: "destructive",

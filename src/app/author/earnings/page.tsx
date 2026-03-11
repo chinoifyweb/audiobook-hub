@@ -19,6 +19,8 @@ import {
   Info,
 } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 const payoutStatusConfig: Record<
   string,
   { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
