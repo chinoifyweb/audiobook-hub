@@ -38,6 +38,8 @@ export const authAPI = {
     api.post('/auth/signup', data),
   getProfile: () => api.get('/user/profile'),
   updateProfile: (data: any) => api.put('/user/profile', data),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    api.post('/user/password', { currentPassword, newPassword }),
 };
 
 // Books API
@@ -61,6 +63,7 @@ export const subscriptionAPI = {
   getPlans: () => api.get('/subscriptions/plans'),
   getMySubscription: () => api.get('/subscriptions/current'),
   initialize: (planId: string) => api.post('/subscriptions/initialize', { planId }),
+  cancel: () => api.post('/subscriptions/cancel'),
 };
 
 // Purchase API

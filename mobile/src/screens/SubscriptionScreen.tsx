@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
 import { subscriptionAPI } from '../lib/api';
 import { SubscriptionPlan } from '../types';
@@ -35,16 +36,47 @@ export default function SubscriptionScreen() {
     fetchData();
   }, []);
 
+  const [subscribing, setSubscribing] = useState<string | null>(null);
+
   const handleSubscribe = async (planId: string) => {
+    setSubscribing(planId);
     try {
       const response = await subscriptionAPI.initialize(planId);
-      // Handle Paystack payment URL
-      console.log('Subscription initialized:', response.data);
-      Alert.alert('Info', 'Payment flow will open in browser');
-    } catch (error) {
+      const paymentUrl = response.data?.authorization_url || response.data?.data?.authorization_url;
+      if (paymentUrl) {
+        await Linking.openURL(paymentUrl);
+      } else {
+        Alert.alert('Info', 'Subscription request sent. Check your email for payment link.');
+      }
+    } catch (error: any) {
       console.error('Subscription error:', error);
-      Alert.alert('Error', 'Failed to initialize subscription');
+      Alert.alert('Error', error?.response?.data?.error || 'Failed to initialize subscription');
+    } finally {
+      setSubscribing(null);
     }
+  };
+
+  const handleCancelSubscription = () => {
+    Alert.alert(
+      'Cancel Subscription',
+      'Are you sure? You will still have access until the end of your current billing period.',
+      [
+        { text: 'Keep Subscription', style: 'cancel' },
+        {
+          text: 'Cancel',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await subscriptionAPI.cancel();
+              setCurrentPlan((prev: any) => prev ? { ...prev, status: 'non_renewing' } : null);
+              Alert.alert('Cancelled', 'Your subscription will not renew.');
+            } catch (error: any) {
+              Alert.alert('Error', error?.response?.data?.error || 'Failed to cancel subscription');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const formatPrice = (price: number) => {
@@ -83,6 +115,11 @@ export default function SubscriptionScreen() {
               Next billing: {new Date(currentPlan.nextPaymentDate).toLocaleDateString()}
             </Text>
           )}
+          {currentPlan.status === 'active' && (
+            <TouchableOpacity style={styles.cancelBtn} onPress={handleCancelSubscription}>
+              <Text style={styles.cancelBtnText}>Cancel Subscription</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -119,11 +156,15 @@ export default function SubscriptionScreen() {
               currentPlan?.planId === plan.id && styles.subscribeBtnActive,
             ]}
             onPress={() => handleSubscribe(plan.id)}
-            disabled={currentPlan?.planId === plan.id}
+            disabled={currentPlan?.planId === plan.id || subscribing === plan.id}
           >
-            <Text style={styles.subscribeBtnText}>
-              {currentPlan?.planId === plan.id ? 'Current Plan' : 'Subscribe'}
-            </Text>
+            {subscribing === plan.id ? (
+              <ActivityIndicator color={COLORS.white} />
+            ) : (
+              <Text style={styles.subscribeBtnText}>
+                {currentPlan?.planId === plan.id ? 'Current Plan' : 'Subscribe'}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       ))}
@@ -255,6 +296,19 @@ const styles = StyleSheet.create({
   subscribeBtnText: {
     color: COLORS.white,
     fontSize: 16,
+    fontWeight: '600',
+  },
+  cancelBtn: {
+    marginTop: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.error,
+  },
+  cancelBtnText: {
+    color: COLORS.error,
+    fontSize: 14,
     fontWeight: '600',
   },
   empty: {
