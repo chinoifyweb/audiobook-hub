@@ -1,0 +1,376 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  customer
+  author
+  admin
+}
+
+enum BookType {
+  ebook
+  audiobook
+  both
+}
+
+enum BookStatus {
+  draft
+  pending_review
+  published
+  rejected
+  archived
+}
+
+enum AudioFormat {
+  mp3
+  aac
+  m4a
+  m4b
+}
+
+enum EbookFormat {
+  epub
+  pdf
+  mobi
+}
+
+enum SubscriptionInterval {
+  monthly
+  quarterly
+  annually
+}
+
+enum SubscriptionStatus {
+  active
+  attention
+  cancelled
+  completed
+  non_renewing
+}
+
+enum PurchaseStatus {
+  pending
+  successful
+  failed
+  refunded
+}
+
+enum AccessType {
+  purchased
+  subscription
+}
+
+enum PayoutStatus {
+  pending
+  processing
+  paid
+  failed
+}
+
+// ─── Models ─────────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?   @map("password_hash")
+  fullName      String?   @map("full_name")
+  avatarUrl     String?   @map("avatar_url")
+  role          UserRole  @default(customer)
+  phone         String?
+  isVerified    Boolean   @default(false) @map("is_verified")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // NextAuth relations
+  accounts Account[]
+  sessions Session[]
+
+  // App relations
+  authorProfile       AuthorProfile?
+  purchases           Purchase[]
+  library             UserLibrary[]
+  reviews             Review[]
+  customerSubscription CustomerSubscription?
+
+  @@map("users")
+}
+
+// NextAuth Account model
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model AuthorProfile {
+  id                    String  @id @default(cuid())
+  userId                String  @unique @map("user_id")
+  penName               String? @map("pen_name")
+  bio                   String? @db.Text
+  websiteUrl            String? @map("website_url")
+  socialLinks           Json?   @map("social_links")
+  bankName              String? @map("bank_name")
+  bankAccountNumber     String? @map("bank_account_number")
+  bankAccountName       String? @map("bank_account_name")
+  paystackSubaccountCode String? @map("paystack_subaccount_code")
+  commissionRate        Decimal @default(0.70) @map("commission_rate") @db.Decimal(5, 2)
+  totalEarnings         Decimal @default(0) @map("total_earnings") @db.Decimal(12, 2)
+  pendingPayout         Decimal @default(0) @map("pending_payout") @db.Decimal(12, 2)
+  isApproved            Boolean @default(false) @map("is_approved")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  books   Book[]
+  payouts AuthorPayout[]
+
+  @@map("author_profiles")
+}
+
+model Book {
+  id               String     @id @default(cuid())
+  authorId         String     @map("author_id")
+  title            String
+  slug             String     @unique
+  description      String?    @db.Text
+  shortDescription String?    @map("short_description")
+  coverImageUrl    String?    @map("cover_image_url")
+  genre            String?
+  subGenre         String?    @map("sub_genre")
+  language         String     @default("English")
+  isbn             String?
+  publicationDate  DateTime?  @map("publication_date")
+  pageCount        Int?       @map("page_count")
+  price            Int        @default(0)  // stored in kobo
+  discountPrice    Int?       @map("discount_price")
+  isFree           Boolean    @default(false) @map("is_free")
+  bookType         BookType   @default(audiobook) @map("book_type")
+  status           BookStatus @default(draft)
+  rejectionReason  String?    @map("rejection_reason") @db.Text
+  ratingAverage    Decimal    @default(0) @map("rating_average") @db.Decimal(3, 2)
+  ratingCount      Int        @default(0) @map("rating_count")
+  downloadCount    Int        @default(0) @map("download_count")
+  isFeatured       Boolean    @default(false) @map("is_featured")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+
+  author      AuthorProfile @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  audioFiles  AudioFile[]
+  ebookFiles  EbookFile[]
+  purchases   Purchase[]
+  library     UserLibrary[]
+  reviews     Review[]
+
+  @@index([authorId])
+  @@index([genre])
+  @@index([status])
+  @@index([bookType])
+  @@map("books")
+}
+
+model AudioFile {
+  id             String      @id @default(cuid())
+  bookId         String      @map("book_id")
+  chapterNumber  Int         @map("chapter_number")
+  chapterTitle   String?     @map("chapter_title")
+  fileUrl        String      @map("file_url")
+  durationSeconds Int        @map("duration_seconds")
+  fileSizeBytes  BigInt      @map("file_size_bytes")
+  format         AudioFormat @default(mp3)
+  sortOrder      Int         @map("sort_order")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId])
+  @@map("audio_files")
+}
+
+model EbookFile {
+  id            String      @id @default(cuid())
+  bookId        String      @map("book_id")
+  fileUrl       String      @map("file_url")
+  format        EbookFormat @default(epub)
+  fileSizeBytes BigInt      @map("file_size_bytes")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId])
+  @@map("ebook_files")
+}
+
+model SubscriptionPlan {
+  id                 String               @id @default(cuid())
+  name               String
+  description        String?              @db.Text
+  price              Int                  // in kobo
+  interval           SubscriptionInterval
+  paystackPlanCode   String?              @map("paystack_plan_code")
+  maxBooksPerMonth   Int?                 @map("max_books_per_month")
+  features           Json?
+  isActive           Boolean              @default(true) @map("is_active")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+
+  subscriptions CustomerSubscription[]
+
+  @@map("subscription_plans")
+}
+
+model CustomerSubscription {
+  id                       String             @id @default(cuid())
+  userId                   String             @unique @map("user_id")
+  planId                   String             @map("plan_id")
+  paystackSubscriptionCode String?            @map("paystack_subscription_code")
+  paystackEmailToken       String?            @map("paystack_email_token")
+  status                   SubscriptionStatus @default(active)
+  currentPeriodStart       DateTime?          @map("current_period_start")
+  currentPeriodEnd         DateTime?          @map("current_period_end")
+  nextPaymentDate          DateTime?          @map("next_payment_date")
+  cancelledAt              DateTime?          @map("cancelled_at")
+  createdAt                DateTime           @default(now()) @map("created_at")
+  updatedAt                DateTime           @updatedAt @map("updated_at")
+
+  user User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@map("customer_subscriptions")
+}
+
+model Purchase {
+  id                    String         @id @default(cuid())
+  userId                String         @map("user_id")
+  bookId                String         @map("book_id")
+  amountPaid            Int            @map("amount_paid")  // in kobo
+  platformFee           Int            @map("platform_fee") // in kobo
+  authorEarnings        Int            @map("author_earnings") // in kobo
+  paystackReference     String?        @unique @map("paystack_reference")
+  paystackTransactionId String?        @map("paystack_transaction_id")
+  status                PurchaseStatus @default(pending)
+  purchasedAt           DateTime?      @map("purchased_at")
+  createdAt             DateTime       @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([bookId])
+  @@index([status])
+  @@map("purchases")
+}
+
+model UserLibrary {
+  id                String     @id @default(cuid())
+  userId            String     @map("user_id")
+  bookId            String     @map("book_id")
+  accessType        AccessType @map("access_type")
+  addedAt           DateTime   @default(now()) @map("added_at")
+  lastAccessedAt    DateTime?  @map("last_accessed_at")
+  listeningProgress Json?      @map("listening_progress")
+  readingProgress   Json?      @map("reading_progress")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId])
+  @@index([userId])
+  @@map("user_library")
+}
+
+model Review {
+  id                 String   @id @default(cuid())
+  userId             String   @map("user_id")
+  bookId             String   @map("book_id")
+  rating             Int
+  reviewText         String?  @map("review_text") @db.Text
+  isVerifiedPurchase Boolean  @default(false) @map("is_verified_purchase")
+  isVisible          Boolean  @default(true) @map("is_visible")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId])
+  @@index([bookId])
+  @@map("reviews")
+}
+
+model AuthorPayout {
+  id                        String       @id @default(cuid())
+  authorId                  String       @map("author_id")
+  amount                    Int          // in kobo
+  periodStart               DateTime     @map("period_start")
+  periodEnd                 DateTime     @map("period_end")
+  status                    PayoutStatus @default(pending)
+  paystackTransferReference String?      @map("paystack_transfer_reference")
+  notes                     String?      @db.Text
+  paidAt                    DateTime?    @map("paid_at")
+  createdAt                 DateTime     @default(now()) @map("created_at")
+
+  author AuthorProfile @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([status])
+  @@map("author_payouts")
+}
+
+model PlatformSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String   @db.Text
+  description String?
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_settings")
+}
