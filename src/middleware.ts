@@ -1,66 +1,46 @@
-import { withAuth } from "next-auth/middleware";
+import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export default withAuth(
-  function middleware(req) {
-    const { pathname } = req.nextUrl;
-    const token = req.nextauth.token;
+export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
 
-    // Admin routes
-    if (pathname.startsWith("/admin") && token?.role !== "admin") {
-      return NextResponse.redirect(new URL("/", req.url));
-    }
+  // Get the token
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
 
-    // Author routes
-    if (
-      pathname.startsWith("/author") &&
-      token?.role !== "author" &&
-      token?.role !== "admin"
-    ) {
-      return NextResponse.redirect(new URL("/", req.url));
-    }
-
-    // Customer dashboard routes
-    if (pathname.startsWith("/dashboard") && !token) {
+  // Admin routes - require admin role
+  if (pathname.startsWith("/admin")) {
+    if (!token) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
-
-    return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ token, req }) => {
-        const { pathname } = req.nextUrl;
-
-        // Public routes - always allow
-        if (
-          pathname === "/" ||
-          pathname.startsWith("/books") ||
-          pathname.startsWith("/pricing") ||
-          pathname.startsWith("/about") ||
-          pathname.startsWith("/contact") ||
-          pathname.startsWith("/terms") ||
-          pathname.startsWith("/privacy") ||
-          pathname.startsWith("/faq") ||
-          pathname.startsWith("/authors") ||
-          pathname.startsWith("/api/webhooks") ||
-          pathname.startsWith("/login") ||
-          pathname.startsWith("/signup") ||
-          pathname.startsWith("/forgot-password") ||
-          pathname.startsWith("/verify-email")
-        ) {
-          return true;
-        }
-
-        // Protected routes require auth
-        return !!token;
-      },
-    },
+    if (token.role !== "admin") {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
   }
-);
+
+  // Author routes - require author or admin role
+  if (pathname.startsWith("/author")) {
+    if (!token) {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+    if (token.role !== "author" && token.role !== "admin") {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+  }
+
+  // Customer dashboard routes - require any auth
+  if (pathname.startsWith("/dashboard")) {
+    if (!token) {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+  }
+
+  return NextResponse.next();
+}
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/).*)",
-  ],
+  matcher: ["/dashboard/:path*", "/author/:path*", "/admin/:path*"],
 };
