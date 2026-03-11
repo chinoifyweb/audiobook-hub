@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
+import { sendEmail } from "@/lib/email";
+import { welcomeEmail, authorApplicationReceivedEmail, newAuthorApplicationEmail } from "@/../emails/templates";
 
 export async function POST(req: Request) {
   try {
@@ -59,6 +61,35 @@ export async function POST(req: Request) {
           isApproved: false,
         },
       });
+    }
+
+    // Send welcome email
+    await sendEmail({
+      to: email,
+      subject: 'Welcome to AudioBook Hub!',
+      html: welcomeEmail(fullName),
+    }).catch((err) => console.error('Failed to send welcome email:', err));
+
+    // If author, send application received email and notify admins
+    if (role === "author") {
+      await sendEmail({
+        to: email,
+        subject: 'Author Application Received',
+        html: authorApplicationReceivedEmail(fullName),
+      }).catch((err) => console.error('Failed to send author application email:', err));
+
+      // Notify admin users about the new author application
+      const admins = await prisma.user.findMany({
+        where: { role: 'admin' },
+        select: { email: true },
+      });
+      for (const admin of admins) {
+        await sendEmail({
+          to: admin.email,
+          subject: 'New Author Application',
+          html: newAuthorApplicationEmail(fullName, email),
+        }).catch((err) => console.error('Failed to send admin notification:', err));
+      }
     }
 
     return NextResponse.json(

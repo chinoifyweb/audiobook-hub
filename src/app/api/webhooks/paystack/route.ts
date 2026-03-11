@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { verifyWebhookSignature, verifyTransaction } from "@/lib/paystack";
 import { prisma } from "@/lib/db";
+import { sendEmail } from "@/lib/email";
+import {
+  purchaseConfirmationEmail,
+  newSaleEmail,
+  subscriptionActivatedEmail,
+  subscriptionCancelledEmail,
+} from "@/../emails/templates";
 
 export async function POST(req: Request) {
   try {
@@ -134,6 +141,40 @@ async function processBookPurchase(
       },
     }),
   ]);
+
+  // Send purchase confirmation email to customer
+  const purchaseUser = await prisma.user.findUnique({ where: { id: purchase.userId } });
+  const purchaseBook = await prisma.book.findUnique({
+    where: { id: purchase.bookId },
+    include: { author: { include: { user: { select: { email: true } } } } },
+  });
+
+  if (purchaseUser && purchaseBook) {
+    const amountFormatted = `\u20A6${(Number(purchase.amountPaid) / 100).toLocaleString()}`;
+    const dateFormatted = new Date().toLocaleDateString('en-NG', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+
+    await sendEmail({
+      to: purchaseUser.email,
+      subject: `Purchase Confirmed: ${purchaseBook.title}`,
+      html: purchaseConfirmationEmail(purchaseUser.fullName || 'Customer', purchaseBook.title, amountFormatted, dateFormatted),
+    }).catch((err) => console.error('Failed to send purchase confirmation email:', err));
+
+    // Notify author of new sale
+    if (purchaseBook.author?.user?.email) {
+      const authorEarningsFormatted = `\u20A6${(Number(purchase.authorEarnings) / 100).toLocaleString()}`;
+      await sendEmail({
+        to: purchaseBook.author.user.email,
+        subject: `New Sale: ${purchaseBook.title}`,
+        html: newSaleEmail(
+          purchaseBook.author.penName || 'Author',
+          purchaseBook.title,
+          authorEarningsFormatted
+        ),
+      }).catch((err) => console.error('Failed to send new sale email:', err));
+    }
+  }
 }
 
 async function processSubscriptionCharge(data: Record<string, unknown>) {
@@ -218,6 +259,19 @@ async function handleSubscriptionCreate(data: Record<string, unknown>) {
         : null,
     },
   });
+
+  // Send subscription activated email
+  const nextBilling = data.next_payment_date
+    ? new Date(data.next_payment_date as string).toLocaleDateString('en-NG', {
+        year: 'numeric', month: 'long', day: 'numeric',
+      })
+    : 'N/A';
+
+  await sendEmail({
+    to: user.email,
+    subject: 'Subscription Activated!',
+    html: subscriptionActivatedEmail(user.fullName || 'Customer', dbPlan.name, nextBilling),
+  }).catch((err) => console.error('Failed to send subscription activated email:', err));
 }
 
 // ─── subscription.disable ────────────────────────────────────────────────────
@@ -228,16 +282,43 @@ async function handleSubscriptionDisable(data: Record<string, unknown>) {
   if (!subscriptionCode) return;
 
   // Idempotency: only update if not already cancelled
-  await prisma.customerSubscription.updateMany({
+  const subToCancel = await prisma.customerSubscription.findFirst({
     where: {
       paystackSubscriptionCode: subscriptionCode,
       status: { not: "cancelled" },
     },
-    data: {
-      status: "cancelled",
-      cancelledAt: new Date(),
+    include: {
+      user: { select: { email: true, fullName: true } },
+      plan: { select: { name: true } },
     },
   });
+
+  if (subToCancel) {
+    await prisma.customerSubscription.update({
+      where: { id: subToCancel.id },
+      data: {
+        status: "cancelled",
+        cancelledAt: new Date(),
+      },
+    });
+
+    // Send subscription cancelled email
+    const endDate = subToCancel.currentPeriodEnd
+      ? new Date(subToCancel.currentPeriodEnd).toLocaleDateString('en-NG', {
+          year: 'numeric', month: 'long', day: 'numeric',
+        })
+      : 'end of current billing period';
+
+    await sendEmail({
+      to: subToCancel.user.email,
+      subject: 'Subscription Cancelled',
+      html: subscriptionCancelledEmail(
+        subToCancel.user.fullName || 'Customer',
+        subToCancel.plan?.name || 'Your Plan',
+        endDate
+      ),
+    }).catch((err) => console.error('Failed to send subscription cancelled email:', err));
+  }
 }
 
 // ─── subscription.not_renew ──────────────────────────────────────────────────

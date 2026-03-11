@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { sendEmail } from "@/lib/email";
+import { bookApprovedEmail, bookRejectedEmail } from "@/../emails/templates";
 
 export async function GET(req: NextRequest) {
   try {
@@ -106,6 +108,30 @@ export async function PUT(req: NextRequest) {
         },
       },
     });
+
+    // Send email notification based on action
+    if (book.author?.user?.email) {
+      const authorEmail = book.author.user.email;
+      const authorName = book.author.penName || book.author.user.fullName || 'Author';
+
+      if (action === "approve") {
+        await sendEmail({
+          to: authorEmail,
+          subject: `Book Published: ${book.title}`,
+          html: bookApprovedEmail(authorName, book.title),
+        }).catch((err) => console.error('Failed to send book approved email:', err));
+      } else if (action === "reject") {
+        await sendEmail({
+          to: authorEmail,
+          subject: `Book Submission Update: ${book.title}`,
+          html: bookRejectedEmail(
+            authorName,
+            book.title,
+            (rejectionReason as string) || 'No reason provided'
+          ),
+        }).catch((err) => console.error('Failed to send book rejected email:', err));
+      }
+    }
 
     return NextResponse.json({ book });
   } catch (error) {

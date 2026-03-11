@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { sendEmail } from "@/lib/email";
+import { authorApprovedEmail, authorRejectedEmail } from "@/../emails/templates";
 
 export async function GET(req: NextRequest) {
   try {
@@ -121,6 +123,21 @@ export async function PUT(req: NextRequest) {
         },
       },
     });
+
+    // Send email notification based on action
+    if (action === "approve" && author.user?.email) {
+      await sendEmail({
+        to: author.user.email,
+        subject: 'Author Application Approved!',
+        html: authorApprovedEmail(author.user.fullName || 'Author'),
+      }).catch((err) => console.error('Failed to send author approved email:', err));
+    } else if (action === "reject" && author.user?.email) {
+      await sendEmail({
+        to: author.user.email,
+        subject: 'Author Application Update',
+        html: authorRejectedEmail(author.user.fullName || 'Author', 'Your application did not meet our current requirements. Please contact support for more details.'),
+      }).catch((err) => console.error('Failed to send author rejected email:', err));
+    }
 
     return NextResponse.json({ author });
   } catch (error) {
