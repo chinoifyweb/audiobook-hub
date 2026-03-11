@@ -1,9 +1,7 @@
-export const API_URL = __DEV__
-  ? 'http://192.168.1.100:3000' // Update with local IP
-  : 'https://audiobooks.com.ng';
+export const API_URL = 'https://audiobooks.com.ng';
 
 export const SUPABASE_URL = 'https://oplcyaickhqperpohdut.supabase.co';
-export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wbGN5YWlja2hxcGVycG9oZHV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE2MzczNzcsImV4cCI6MjA1NzIxMzM3N30.XNPJbSYB7P2TdR91FeNivEbOsGn7oflQSG6giBvIPI8';
+export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wbGN5YWlja2hxcGVycG9oZHV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNzIxNzcsImV4cCI6MjA4ODc0ODE3N30.iG6CIMkf625ATb6yjuH4XWc9jzXzau09C2D50T4tvaE';
 
 export const COLORS = {
   primary: '#6366f1',

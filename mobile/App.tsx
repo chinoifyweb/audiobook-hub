@@ -10,7 +10,6 @@ import {
 } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
 import Navigation from './src/navigation';
-import MiniPlayer from './src/components/MiniPlayer';
 import { COLORS } from './src/lib/constants';
 
 // Keep splash screen visible while loading fonts
@@ -38,7 +37,6 @@ export default function App() {
     <View style={styles.container} onLayout={onLayoutRootView}>
       <StatusBar style="light" />
       <Navigation />
-      <MiniPlayer />
     </View>
   );
 }

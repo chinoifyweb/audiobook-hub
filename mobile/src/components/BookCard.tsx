@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import { Image } from 'expo-image';
+import { Image } from 'react-native';
 import { Book } from '../types';
 import { COLORS } from '../lib/constants';
 

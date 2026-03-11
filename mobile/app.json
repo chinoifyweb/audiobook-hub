@@ -16,7 +16,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.audiobooks.app",
       "infoPlist": {
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": [
+          "audio"
+        ]
       }
     },
     "android": {
@@ -34,7 +36,6 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-image",
       "expo-font",
       [
         "expo-notifications",
@@ -43,6 +44,12 @@
           "color": "#6366f1"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "0c79abcc-4406-49f4-b750-62eacf070f76"
+      }
+    },
+    "owner": "chinoifyweb"
   }
 }

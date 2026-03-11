@@ -7,7 +7,7 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
-import { Image } from 'expo-image';
+import { Image } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { booksAPI } from '../lib/api';
