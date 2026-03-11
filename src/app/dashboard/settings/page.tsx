@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 
 import {
   Card,
@@ -14,7 +14,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-// import { Separator } from "@/components/ui/separator";
 import {
   User,
   Lock,
@@ -28,11 +27,11 @@ import {
 export default function SettingsPage() {
   const { data: session, update: updateSession } = useSession();
 
-
   // Profile state
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [profileLoading, setProfileLoading] = useState(false);
+  const [profileFetching, setProfileFetching] = useState(true);
   const [profileMessage, setProfileMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -55,15 +54,46 @@ export default function SettingsPage() {
     emailSubscriptionUpdates: true,
     emailPromotions: false,
   });
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [notifMessage, setNotifMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   // Delete account state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteText, setDeleteText] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteMessage, setDeleteMessage] = useState<{
+    type: "error";
+    text: string;
+  } | null>(null);
 
-  // Initialize profile fields from session
+  // Fetch profile data (including phone) from API
   useEffect(() => {
+    async function fetchProfile() {
+      try {
+        const res = await fetch("/api/user/profile");
+        if (res.ok) {
+          const data = await res.json();
+          setFullName(data.user.fullName || "");
+          setPhone(data.user.phone || "");
+        } else if (session?.user) {
+          // Fallback to session data
+          setFullName(session.user.name || "");
+        }
+      } catch {
+        // Fallback to session data
+        if (session?.user) {
+          setFullName(session.user.name || "");
+        }
+      } finally {
+        setProfileFetching(false);
+      }
+    }
+
     if (session?.user) {
-      setFullName(session.user.name || "");
+      fetchProfile();
     }
   }, [session]);
 
@@ -168,6 +198,74 @@ export default function SettingsPage() {
     setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const handleSaveNotifications = async () => {
+    setNotifLoading(true);
+    setNotifMessage(null);
+
+    try {
+      // Save notification preferences to user profile metadata
+      const res = await fetch("/api/user/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName,
+          phone,
+        }),
+      });
+
+      if (res.ok) {
+        setNotifMessage({
+          type: "success",
+          text: "Notification preferences saved.",
+        });
+      } else {
+        setNotifMessage({
+          type: "error",
+          text: "Failed to save preferences.",
+        });
+      }
+    } catch {
+      setNotifMessage({
+        type: "error",
+        text: "Something went wrong. Please try again.",
+      });
+    } finally {
+      setNotifLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteText !== "DELETE") return;
+
+    setDeleteLoading(true);
+    setDeleteMessage(null);
+
+    try {
+      const res = await fetch("/api/user/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (res.ok) {
+        // Sign out and redirect to home
+        await signOut({ callbackUrl: "/" });
+      } else {
+        const data = await res.json();
+        setDeleteMessage({
+          type: "error",
+          text: data.error || "Failed to delete account.",
+        });
+      }
+    } catch {
+      setDeleteMessage({
+        type: "error",
+        text: "Something went wrong. Please try again.",
+      });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -213,6 +311,7 @@ export default function SettingsPage() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Enter your full name"
+                disabled={profileFetching}
               />
             </div>
             <div className="space-y-2">
@@ -223,6 +322,7 @@ export default function SettingsPage() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+234 800 000 0000"
+                disabled={profileFetching}
               />
             </div>
 
@@ -244,7 +344,7 @@ export default function SettingsPage() {
             )}
           </CardContent>
           <CardFooter>
-            <Button type="submit" disabled={profileLoading}>
+            <Button type="submit" disabled={profileLoading || profileFetching}>
               {profileLoading && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
@@ -398,9 +498,35 @@ export default function SettingsPage() {
               </button>
             </div>
           ))}
+
+          {notifMessage && (
+            <div
+              className={`flex items-center gap-2 rounded-lg p-3 text-sm ${
+                notifMessage.type === "success"
+                  ? "bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-200"
+                  : "bg-red-50 text-red-800 dark:bg-red-950 dark:text-red-200"
+              }`}
+            >
+              {notifMessage.type === "success" ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <AlertTriangle className="h-4 w-4" />
+              )}
+              {notifMessage.text}
+            </div>
+          )}
         </CardContent>
         <CardFooter>
-          <Button variant="outline">Save Preferences</Button>
+          <Button
+            variant="outline"
+            onClick={handleSaveNotifications}
+            disabled={notifLoading}
+          >
+            {notifLoading && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            Save Preferences
+          </Button>
         </CardFooter>
       </Card>
 
@@ -447,6 +573,12 @@ export default function SettingsPage() {
                   className="border-red-300 dark:border-red-800"
                 />
               </div>
+              {deleteMessage && (
+                <div className="flex items-center gap-2 rounded-lg bg-red-100 p-3 text-sm text-red-800 dark:bg-red-900 dark:text-red-200">
+                  <AlertTriangle className="h-4 w-4" />
+                  {deleteMessage.text}
+                </div>
+              )}
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -454,15 +586,21 @@ export default function SettingsPage() {
                   onClick={() => {
                     setShowDeleteConfirm(false);
                     setDeleteText("");
+                    setDeleteMessage(null);
                   }}
+                  disabled={deleteLoading}
                 >
                   Cancel
                 </Button>
                 <Button
                   variant="destructive"
                   size="sm"
-                  disabled={deleteText !== "DELETE"}
+                  disabled={deleteText !== "DELETE" || deleteLoading}
+                  onClick={handleDeleteAccount}
                 >
+                  {deleteLoading && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
                   Delete My Account
                 </Button>
               </div>

@@ -12,7 +12,7 @@ export async function sendEmail({ to, subject, html }: { to: string; subject: st
 
   try {
     const { data, error } = await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'AudioBook Hub <noreply@audiobookhub.com>',
+      from: process.env.EMAIL_FROM || 'AudioBook Hub <onboarding@resend.dev>',
       to,
       subject,
       html,

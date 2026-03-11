@@ -13,6 +13,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { prisma } from "@/lib/db";
 import { formatPrice } from "@/lib/utils";
+import { SubscribeButton } from "@/components/public/subscribe-button";
 
 export const dynamic = 'force-dynamic';
 
@@ -71,10 +72,15 @@ const faqItems = [
 ];
 
 export default async function PricingPage() {
-  const plans = await prisma.subscriptionPlan.findMany({
-    where: { isActive: true },
-    orderBy: { price: "asc" },
-  });
+  let plans: Awaited<ReturnType<typeof prisma.subscriptionPlan.findMany>> = [];
+  try {
+    plans = await prisma.subscriptionPlan.findMany({
+      where: { isActive: true },
+      orderBy: { price: "asc" },
+    });
+  } catch (error) {
+    console.error("Error fetching subscription plans:", error);
+  }
 
   const monthlyPlans = plans.filter((p) => p.interval === "monthly");
   const annualPlans = plans.filter((p) => p.interval === "annually");
@@ -161,14 +167,10 @@ export default async function PricingPage() {
                     </ul>
                   </CardContent>
                   <CardFooter>
-                    <Button
-                      className="w-full"
+                    <SubscribeButton
+                      planId={plan.id}
                       variant={isPopular ? "default" : "outline"}
-                      size="lg"
-                      asChild
-                    >
-                      <Link href="/signup">Subscribe Now</Link>
-                    </Button>
+                    />
                   </CardFooter>
                 </Card>
               );
@@ -232,9 +234,10 @@ export default async function PricingPage() {
                       </ul>
                     </CardContent>
                     <CardFooter>
-                      <Button className="w-full" variant="outline" size="lg" asChild>
-                        <Link href="/signup">Subscribe Now</Link>
-                      </Button>
+                      <SubscribeButton
+                        planId={plan.id}
+                        variant="outline"
+                      />
                     </CardFooter>
                   </Card>
                 );

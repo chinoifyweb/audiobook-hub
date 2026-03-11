@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 
 interface CancelSubscriptionButtonProps {
   subscriptionId: string;
@@ -17,9 +17,11 @@ export function CancelSubscriptionButton({
   const router = useRouter();
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleCancel = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/subscriptions/cancel", {
         method: "POST",
@@ -29,12 +31,15 @@ export function CancelSubscriptionButton({
 
       if (res.ok) {
         router.refresh();
+        setShowConfirm(false);
+      } else {
+        const data = await res.json();
+        setError(data.error || "Failed to cancel subscription. Please try again.");
       }
     } catch {
-      // Error handling is best-effort
+      setError("Network error. Please check your connection and try again.");
     } finally {
       setIsLoading(false);
-      setShowConfirm(false);
     }
   };
 
@@ -58,11 +63,19 @@ export function CancelSubscriptionButton({
             </p>
           </div>
         </div>
+        {error && (
+          <div className="rounded-lg bg-red-100 p-3 text-sm text-red-800 dark:bg-red-900 dark:text-red-200">
+            {error}
+          </div>
+        )}
         <div className="flex gap-2 justify-end">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowConfirm(false)}
+            onClick={() => {
+              setShowConfirm(false);
+              setError(null);
+            }}
             disabled={isLoading}
           >
             Keep Subscription
@@ -73,7 +86,14 @@ export function CancelSubscriptionButton({
             onClick={handleCancel}
             disabled={isLoading}
           >
-            {isLoading ? "Cancelling..." : "Yes, Cancel"}
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Cancelling...
+              </>
+            ) : (
+              "Yes, Cancel"
+            )}
           </Button>
         </div>
       </div>
