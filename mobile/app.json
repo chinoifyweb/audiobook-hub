@@ -28,8 +28,7 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.audiobooks.app",
-      "predictiveBackGestureEnabled": false
+      "package": "com.audiobooks.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"

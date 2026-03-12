@@ -1,14 +1,13 @@
-// @ts-nocheck - expo-file-system v55 has new API, using legacy compat
-import * as LegacyFS from 'expo-file-system/src/legacy/FileSystem';
+import * as FileSystem from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const DOWNLOAD_DIR = `${LegacyFS.documentDirectory || ''}audiobooks/`;
+const DOWNLOAD_DIR = `${FileSystem.documentDirectory || ''}audiobooks/`;
 
 export const downloadManager = {
   async ensureDir() {
-    const dirInfo = await LegacyFS.getInfoAsync(DOWNLOAD_DIR);
+    const dirInfo = await FileSystem.getInfoAsync(DOWNLOAD_DIR);
     if (!dirInfo.exists) {
-      await LegacyFS.makeDirectoryAsync(DOWNLOAD_DIR, { intermediates: true });
+      await FileSystem.makeDirectoryAsync(DOWNLOAD_DIR, { intermediates: true });
     }
   },
 
@@ -18,7 +17,7 @@ export const downloadManager = {
 
   async isDownloaded(bookId: string, chapterId: string): Promise<boolean> {
     const path = this.getLocalPath(bookId, chapterId);
-    const info = await LegacyFS.getInfoAsync(path);
+    const info = await FileSystem.getInfoAsync(path);
     return info.exists;
   },
 
@@ -30,18 +29,18 @@ export const downloadManager = {
   ): Promise<string> {
     await this.ensureDir();
     const bookDir = `${DOWNLOAD_DIR}${bookId}/`;
-    const dirInfo = await LegacyFS.getInfoAsync(bookDir);
+    const dirInfo = await FileSystem.getInfoAsync(bookDir);
     if (!dirInfo.exists) {
-      await LegacyFS.makeDirectoryAsync(bookDir, { intermediates: true });
+      await FileSystem.makeDirectoryAsync(bookDir, { intermediates: true });
     }
 
     const localPath = this.getLocalPath(bookId, chapterId);
 
-    const downloadResumable = LegacyFS.createDownloadResumable(
+    const downloadResumable = FileSystem.createDownloadResumable(
       url,
       localPath,
       {},
-      (downloadProgress: any) => {
+      (downloadProgress) => {
         const progress =
           downloadProgress.totalBytesWritten /
           downloadProgress.totalBytesExpectedToWrite;
@@ -65,9 +64,9 @@ export const downloadManager = {
 
   async deleteBook(bookId: string): Promise<void> {
     const bookDir = `${DOWNLOAD_DIR}${bookId}/`;
-    const dirInfo = await LegacyFS.getInfoAsync(bookDir);
+    const dirInfo = await FileSystem.getInfoAsync(bookDir);
     if (dirInfo.exists) {
-      await LegacyFS.deleteAsync(bookDir, { idempotent: true });
+      await FileSystem.deleteAsync(bookDir, { idempotent: true });
     }
     const downloads = JSON.parse(
       (await AsyncStorage.getItem('downloads')) || '{}'
@@ -85,7 +84,7 @@ export const downloadManager = {
 
   async getStorageUsed(): Promise<number> {
     await this.ensureDir();
-    const dirInfo = await LegacyFS.getInfoAsync(DOWNLOAD_DIR);
+    const dirInfo = await FileSystem.getInfoAsync(DOWNLOAD_DIR);
     return dirInfo.exists ? ((dirInfo as any).size || 0) : 0;
   },
 };
