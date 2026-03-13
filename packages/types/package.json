@@ -1,0 +1,14 @@
+{
+  "name": "@repo/types",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@repo/db": "*"
+  },
+  "devDependencies": {
+    "next-auth": "^4.24.13",
+    "typescript": "^5"
+  }
+}

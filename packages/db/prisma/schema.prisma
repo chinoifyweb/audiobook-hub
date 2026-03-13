@@ -1,0 +1,992 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  customer
+  author
+  admin
+  student
+  lecturer
+  rector
+}
+
+enum BookType {
+  ebook
+  audiobook
+  both
+}
+
+enum BookStatus {
+  draft
+  pending_review
+  published
+  rejected
+  archived
+}
+
+enum AudioFormat {
+  mp3
+  aac
+  m4a
+  m4b
+}
+
+enum EbookFormat {
+  epub
+  pdf
+  mobi
+}
+
+enum SubscriptionInterval {
+  monthly
+  quarterly
+  annually
+}
+
+enum SubscriptionStatus {
+  active
+  attention
+  cancelled
+  completed
+  non_renewing
+}
+
+enum PurchaseStatus {
+  pending
+  successful
+  failed
+  refunded
+}
+
+enum AccessType {
+  purchased
+  subscription
+}
+
+enum PayoutStatus {
+  pending
+  processing
+  paid
+  failed
+}
+
+// ─── Models ─────────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?   @map("password_hash")
+  fullName      String?   @map("full_name")
+  avatarUrl     String?   @map("avatar_url")
+  role          UserRole  @default(customer)
+  phone         String?
+  isVerified    Boolean   @default(false) @map("is_verified")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // NextAuth relations
+  accounts Account[]
+  sessions Session[]
+
+  // App relations
+  authorProfile       AuthorProfile?
+  purchases           Purchase[]
+  library             UserLibrary[]
+  reviews             Review[]
+  customerSubscription CustomerSubscription?
+
+  // LMS relations
+  studentProfile      StudentProfile?
+  lecturerProfile     LecturerProfile?
+  lmsApplications     LmsApplication[]
+  reviewedApplications LmsApplication[] @relation("ReviewedBy")
+  gradedSubmissions   AssignmentSubmission[] @relation("GradedBy")
+  gradedAttempts      TestExamAttempt[] @relation("GradedAttemptBy")
+  releasedGrades      Grade[] @relation("ReleasedBy")
+
+  @@map("users")
+}
+
+// NextAuth Account model
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model AuthorProfile {
+  id                    String  @id @default(cuid())
+  userId                String  @unique @map("user_id")
+  penName               String? @map("pen_name")
+  bio                   String? @db.Text
+  websiteUrl            String? @map("website_url")
+  socialLinks           Json?   @map("social_links")
+  bankName              String? @map("bank_name")
+  bankAccountNumber     String? @map("bank_account_number")
+  bankAccountName       String? @map("bank_account_name")
+  paystackSubaccountCode String? @map("paystack_subaccount_code")
+  commissionRate        Decimal @default(0.70) @map("commission_rate") @db.Decimal(5, 2)
+  totalEarnings         Decimal @default(0) @map("total_earnings") @db.Decimal(12, 2)
+  pendingPayout         Decimal @default(0) @map("pending_payout") @db.Decimal(12, 2)
+  isApproved            Boolean @default(false) @map("is_approved")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  books   Book[]
+  payouts AuthorPayout[]
+
+  @@map("author_profiles")
+}
+
+model Book {
+  id               String     @id @default(cuid())
+  authorId         String     @map("author_id")
+  title            String
+  slug             String     @unique
+  description      String?    @db.Text
+  shortDescription String?    @map("short_description")
+  coverImageUrl    String?    @map("cover_image_url")
+  genre            String?
+  subGenre         String?    @map("sub_genre")
+  language         String     @default("English")
+  isbn             String?
+  publicationDate  DateTime?  @map("publication_date")
+  pageCount        Int?       @map("page_count")
+  price            Int        @default(0)  // stored in kobo
+  discountPrice    Int?       @map("discount_price")
+  isFree           Boolean    @default(false) @map("is_free")
+  bookType         BookType   @default(audiobook) @map("book_type")
+  status           BookStatus @default(draft)
+  rejectionReason  String?    @map("rejection_reason") @db.Text
+  ratingAverage    Decimal    @default(0) @map("rating_average") @db.Decimal(3, 2)
+  ratingCount      Int        @default(0) @map("rating_count")
+  downloadCount    Int        @default(0) @map("download_count")
+  isFeatured       Boolean    @default(false) @map("is_featured")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+
+  author      AuthorProfile @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  audioFiles  AudioFile[]
+  ebookFiles  EbookFile[]
+  purchases   Purchase[]
+  library     UserLibrary[]
+  reviews     Review[]
+
+  @@index([authorId])
+  @@index([genre])
+  @@index([status])
+  @@index([bookType])
+  @@map("books")
+}
+
+model AudioFile {
+  id             String      @id @default(cuid())
+  bookId         String      @map("book_id")
+  chapterNumber  Int         @map("chapter_number")
+  chapterTitle   String?     @map("chapter_title")
+  fileUrl        String      @map("file_url")
+  durationSeconds Int        @map("duration_seconds")
+  fileSizeBytes  BigInt      @map("file_size_bytes")
+  format         AudioFormat @default(mp3)
+  sortOrder      Int         @map("sort_order")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId])
+  @@map("audio_files")
+}
+
+model EbookFile {
+  id            String      @id @default(cuid())
+  bookId        String      @map("book_id")
+  fileUrl       String      @map("file_url")
+  format        EbookFormat @default(epub)
+  fileSizeBytes BigInt      @map("file_size_bytes")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId])
+  @@map("ebook_files")
+}
+
+model SubscriptionPlan {
+  id                 String               @id @default(cuid())
+  name               String
+  description        String?              @db.Text
+  price              Int                  // in kobo
+  interval           SubscriptionInterval
+  paystackPlanCode   String?              @map("paystack_plan_code")
+  maxBooksPerMonth   Int?                 @map("max_books_per_month")
+  features           Json?
+  isActive           Boolean              @default(true) @map("is_active")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+
+  subscriptions CustomerSubscription[]
+
+  @@map("subscription_plans")
+}
+
+model CustomerSubscription {
+  id                       String             @id @default(cuid())
+  userId                   String             @unique @map("user_id")
+  planId                   String             @map("plan_id")
+  paystackSubscriptionCode String?            @map("paystack_subscription_code")
+  paystackEmailToken       String?            @map("paystack_email_token")
+  status                   SubscriptionStatus @default(active)
+  currentPeriodStart       DateTime?          @map("current_period_start")
+  currentPeriodEnd         DateTime?          @map("current_period_end")
+  nextPaymentDate          DateTime?          @map("next_payment_date")
+  cancelledAt              DateTime?          @map("cancelled_at")
+  createdAt                DateTime           @default(now()) @map("created_at")
+  updatedAt                DateTime           @updatedAt @map("updated_at")
+
+  user User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@map("customer_subscriptions")
+}
+
+model Purchase {
+  id                    String         @id @default(cuid())
+  userId                String         @map("user_id")
+  bookId                String         @map("book_id")
+  amountPaid            Int            @map("amount_paid")  // in kobo
+  platformFee           Int            @map("platform_fee") // in kobo
+  authorEarnings        Int            @map("author_earnings") // in kobo
+  paystackReference     String?        @unique @map("paystack_reference")
+  paystackTransactionId String?        @map("paystack_transaction_id")
+  status                PurchaseStatus @default(pending)
+  purchasedAt           DateTime?      @map("purchased_at")
+  createdAt             DateTime       @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([bookId])
+  @@index([status])
+  @@map("purchases")
+}
+
+model UserLibrary {
+  id                String     @id @default(cuid())
+  userId            String     @map("user_id")
+  bookId            String     @map("book_id")
+  accessType        AccessType @map("access_type")
+  addedAt           DateTime   @default(now()) @map("added_at")
+  lastAccessedAt    DateTime?  @map("last_accessed_at")
+  listeningProgress Json?      @map("listening_progress")
+  readingProgress   Json?      @map("reading_progress")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId])
+  @@index([userId])
+  @@map("user_library")
+}
+
+model Review {
+  id                 String   @id @default(cuid())
+  userId             String   @map("user_id")
+  bookId             String   @map("book_id")
+  rating             Int
+  reviewText         String?  @map("review_text") @db.Text
+  isVerifiedPurchase Boolean  @default(false) @map("is_verified_purchase")
+  isVisible          Boolean  @default(true) @map("is_visible")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId])
+  @@index([bookId])
+  @@map("reviews")
+}
+
+model AuthorPayout {
+  id                        String       @id @default(cuid())
+  authorId                  String       @map("author_id")
+  amount                    Int          // in kobo
+  periodStart               DateTime     @map("period_start")
+  periodEnd                 DateTime     @map("period_end")
+  status                    PayoutStatus @default(pending)
+  paystackTransferReference String?      @map("paystack_transfer_reference")
+  notes                     String?      @db.Text
+  paidAt                    DateTime?    @map("paid_at")
+  createdAt                 DateTime     @default(now()) @map("created_at")
+
+  author AuthorProfile @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([status])
+  @@map("author_payouts")
+}
+
+model PlatformSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String   @db.Text
+  description String?
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_settings")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LMS (Learning Management System) — Berean Bible Academy
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── LMS Enums ───────────────────────────────────────────────────────────────
+
+enum DegreeType {
+  certificate
+  diploma
+  bachelors
+  masters
+  phd
+}
+
+enum ApplicationStatus {
+  submitted
+  under_review
+  accepted
+  rejected
+  withdrawn
+}
+
+enum StudentStatus {
+  active
+  suspended
+  graduated
+  withdrawn
+  deferred
+}
+
+enum EnrollmentStatus {
+  enrolled
+  dropped
+  completed
+  failed
+}
+
+enum CourseMaterialType {
+  youtube_video
+  pdf
+  ebook
+  link
+  document
+}
+
+enum QuestionType {
+  mcq
+  true_false
+  short_answer
+  essay
+}
+
+enum TestExamType {
+  test
+  exam
+}
+
+enum AttemptStatus {
+  in_progress
+  submitted
+  graded
+}
+
+enum CalendarEventType {
+  registration
+  lectures_start
+  mid_semester
+  exam_start
+  exam_end
+  results_release
+  break_period
+  other
+}
+
+enum TuitionPaymentStatus {
+  pending
+  successful
+  failed
+  refunded
+}
+
+// ─── LMS Models ──────────────────────────────────────────────────────────────
+
+model AcademicSession {
+  id        String   @id @default(cuid())
+  name      String   // e.g. "2025/2026"
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
+  isActive  Boolean  @default(false) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  semesters    Semester[]
+  applications LmsApplication[]
+
+  @@map("academic_sessions")
+}
+
+model Semester {
+  id                String   @id @default(cuid())
+  sessionId         String   @map("session_id")
+  name              String   // e.g. "First Semester"
+  number            Int      // 1 or 2
+  startDate         DateTime @map("start_date")
+  endDate           DateTime @map("end_date")
+  examStartDate     DateTime? @map("exam_start_date")
+  examEndDate       DateTime? @map("exam_end_date")
+  resultReleaseDate DateTime? @map("result_release_date")
+  isActive          Boolean  @default(false) @map("is_active")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  session            AcademicSession        @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  courseAssignments   CourseAssignment[]
+  courseEnrollments   CourseEnrollment[]
+  grades             Grade[]
+  tuitionFees        TuitionFee[]
+  calendarEvents     AcademicCalendarEvent[]
+
+  @@index([sessionId])
+  @@map("semesters")
+}
+
+model Faculty {
+  id          String   @id @default(cuid())
+  name        String   // e.g. "Faculty of Theology"
+  code        String   @unique // e.g. "THEO"
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  departments Department[]
+
+  @@map("faculties")
+}
+
+model Department {
+  id          String   @id @default(cuid())
+  facultyId   String   @map("faculty_id")
+  name        String   // e.g. "Department of Biblical Studies"
+  code        String   @unique // e.g. "BIB"
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  faculty           Faculty            @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  programs          Program[]
+  courses           Course[]
+  lecturerProfiles  LecturerProfile[]
+
+  @@index([facultyId])
+  @@map("departments")
+}
+
+model Program {
+  id                  String     @id @default(cuid())
+  departmentId        String     @map("department_id")
+  name                String     // e.g. "Certificate in Christian Leadership"
+  code                String     @unique // e.g. "CCL"
+  description         String?    @db.Text
+  degreeType          DegreeType @map("degree_type")
+  durationSemesters   Int        @map("duration_semesters")
+  totalCredits        Int        @map("total_credits")
+  tuitionPerSemester  Int        @map("tuition_per_semester") // in kobo
+  isActive            Boolean    @default(true) @map("is_active")
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
+
+  department     Department       @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  courses        Course[]
+  applications   LmsApplication[]
+  students       StudentProfile[]
+  tuitionFees    TuitionFee[]
+  certificates   LmsCertificate[]
+
+  @@index([departmentId])
+  @@map("programs")
+}
+
+model Course {
+  id             String   @id @default(cuid())
+  departmentId   String   @map("department_id")
+  programId      String?  @map("program_id")
+  code           String   @unique // e.g. "BIB101"
+  title          String
+  description    String?  @db.Text
+  creditUnits    Int      @map("credit_units")
+  semesterNumber Int      @map("semester_number") // which semester in the program
+  isElective     Boolean  @default(false) @map("is_elective")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  department        Department         @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  program           Program?           @relation(fields: [programId], references: [id], onDelete: SetNull)
+  courseAssignments  CourseAssignment[]
+
+  @@index([departmentId])
+  @@index([programId])
+  @@map("courses")
+}
+
+model LecturerProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique @map("user_id")
+  staffId        String   @unique @map("staff_id") // e.g. "LEC/2025/001"
+  departmentId   String   @map("department_id")
+  title          String?  // e.g. "Dr.", "Prof.", "Rev."
+  specialization String?
+  qualifications Json?
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department        Department         @relation(fields: [departmentId], references: [id])
+  courseAssignments  CourseAssignment[]
+
+  @@index([departmentId])
+  @@map("lecturer_profiles")
+}
+
+model CourseAssignment {
+  id          String   @id @default(cuid())
+  courseId     String   @map("course_id")
+  lecturerId  String   @map("lecturer_id")
+  semesterId  String   @map("semester_id")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  course          Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lecturer        LecturerProfile   @relation(fields: [lecturerId], references: [id])
+  semester        Semester          @relation(fields: [semesterId], references: [id])
+  enrollments     CourseEnrollment[]
+  materials       CourseMaterial[]
+  assignments     LmsAssignment[]
+  questionBanks   QuestionBank[]
+  testExams       TestExam[]
+
+  @@unique([courseId, lecturerId, semesterId])
+  @@index([courseId])
+  @@index([lecturerId])
+  @@index([semesterId])
+  @@map("course_assignments")
+}
+
+model LmsApplication {
+  id                String            @id @default(cuid())
+  userId            String            @map("user_id")
+  programId         String            @map("program_id")
+  sessionId         String            @map("session_id")
+  applicationNumber String            @unique @map("application_number") // auto-generated
+  status            ApplicationStatus @default(submitted)
+  firstName         String            @map("first_name")
+  lastName          String            @map("last_name")
+  email             String
+  phone             String?
+  dateOfBirth       DateTime?         @map("date_of_birth")
+  gender            String?
+  address           String?           @db.Text
+  previousEducation Json?             @map("previous_education")
+  documents         Json?             // uploaded document URLs
+  admissionLetterUrl String?          @map("admission_letter_url")
+  rejectionReason   String?           @map("rejection_reason") @db.Text
+  reviewedById      String?           @map("reviewed_by_id")
+  reviewedAt        DateTime?         @map("reviewed_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  program    Program          @relation(fields: [programId], references: [id])
+  session    AcademicSession  @relation(fields: [sessionId], references: [id])
+  reviewedBy User?            @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  student    StudentProfile?
+
+  @@index([userId])
+  @@index([programId])
+  @@index([status])
+  @@map("lms_applications")
+}
+
+model StudentProfile {
+  id                 String        @id @default(cuid())
+  userId             String        @unique @map("user_id")
+  studentId          String        @unique @map("student_id") // e.g. "STU/2025/0001"
+  programId          String        @map("program_id")
+  applicationId      String        @unique @map("application_id")
+  currentSemester    Int           @default(1) @map("current_semester")
+  enrollmentDate     DateTime      @default(now()) @map("enrollment_date")
+  expectedGraduation DateTime?     @map("expected_graduation")
+  status             StudentStatus @default(active)
+  idCardUrl          String?       @map("id_card_url")
+  photoUrl           String?       @map("photo_url")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  program           Program                @relation(fields: [programId], references: [id])
+  application       LmsApplication         @relation(fields: [applicationId], references: [id])
+  enrollments       CourseEnrollment[]
+  submissions       AssignmentSubmission[]
+  testExamAttempts  TestExamAttempt[]
+  grades            Grade[]
+  tuitionPayments   TuitionPayment[]
+  certificates      LmsCertificate[]
+
+  @@index([programId])
+  @@map("student_profiles")
+}
+
+model CourseEnrollment {
+  id                  String           @id @default(cuid())
+  studentId           String           @map("student_id")
+  courseAssignmentId  String           @map("course_assignment_id")
+  semesterId          String           @map("semester_id")
+  status              EnrollmentStatus @default(enrolled)
+  enrolledAt          DateTime         @default(now()) @map("enrolled_at")
+  completedAt         DateTime?        @map("completed_at")
+  createdAt           DateTime         @default(now()) @map("created_at")
+
+  student          StudentProfile  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseAssignment CourseAssignment @relation(fields: [courseAssignmentId], references: [id], onDelete: Cascade)
+  semester         Semester         @relation(fields: [semesterId], references: [id])
+  grade            Grade?
+
+  @@unique([studentId, courseAssignmentId])
+  @@index([studentId])
+  @@index([courseAssignmentId])
+  @@map("course_enrollments")
+}
+
+model CourseMaterial {
+  id                  String             @id @default(cuid())
+  courseAssignmentId  String             @map("course_assignment_id")
+  title               String
+  description         String?            @db.Text
+  type                CourseMaterialType
+  contentUrl          String             @map("content_url") // YouTube URL or file URL
+  fileSize            BigInt?            @map("file_size")
+  sortOrder           Int                @default(0) @map("sort_order")
+  isPublished         Boolean            @default(false) @map("is_published")
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+
+  courseAssignment CourseAssignment @relation(fields: [courseAssignmentId], references: [id], onDelete: Cascade)
+
+  @@index([courseAssignmentId])
+  @@map("course_materials")
+}
+
+model LmsAssignment {
+  id                  String   @id @default(cuid())
+  courseAssignmentId  String   @map("course_assignment_id")
+  title               String
+  description         String?  @db.Text
+  instructions        String?  @db.Text
+  dueDate             DateTime @map("due_date")
+  maxScore            Int      @map("max_score")
+  allowLateSubmission Boolean  @default(false) @map("allow_late_submission")
+  fileRequired        Boolean  @default(true) @map("file_required")
+  isPublished         Boolean  @default(false) @map("is_published")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  courseAssignment CourseAssignment       @relation(fields: [courseAssignmentId], references: [id], onDelete: Cascade)
+  submissions      AssignmentSubmission[]
+
+  @@index([courseAssignmentId])
+  @@map("lms_assignments")
+}
+
+model AssignmentSubmission {
+  id             String    @id @default(cuid())
+  assignmentId   String    @map("assignment_id")
+  studentId      String    @map("student_id")
+  submissionText String?   @map("submission_text") @db.Text
+  fileUrl        String?   @map("file_url")
+  submittedAt    DateTime  @default(now()) @map("submitted_at")
+  isLate         Boolean   @default(false) @map("is_late")
+  score          Int?
+  feedback       String?   @db.Text
+  gradedById     String?   @map("graded_by_id")
+  gradedAt       DateTime? @map("graded_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  assignment LmsAssignment   @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student    StudentProfile  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  gradedBy   User?           @relation("GradedBy", fields: [gradedById], references: [id])
+
+  @@unique([assignmentId, studentId])
+  @@index([assignmentId])
+  @@index([studentId])
+  @@map("assignment_submissions")
+}
+
+model QuestionBank {
+  id                  String   @id @default(cuid())
+  courseAssignmentId  String   @map("course_assignment_id")
+  title               String
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  courseAssignment CourseAssignment @relation(fields: [courseAssignmentId], references: [id], onDelete: Cascade)
+  questions        Question[]
+
+  @@index([courseAssignmentId])
+  @@map("question_banks")
+}
+
+model Question {
+  id             String       @id @default(cuid())
+  questionBankId String       @map("question_bank_id")
+  questionText   String       @map("question_text") @db.Text
+  questionType   QuestionType @map("question_type")
+  options        Json?        // for MCQ: [{text: string, isCorrect: boolean}]
+  correctAnswer  String?      @map("correct_answer") @db.Text // for short answer auto-grade
+  points         Int          @default(1)
+  sortOrder      Int          @default(0) @map("sort_order")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  questionBank     QuestionBank      @relation(fields: [questionBankId], references: [id], onDelete: Cascade)
+  testExamQuestions TestExamQuestion[]
+  answers          TestExamAnswer[]
+
+  @@index([questionBankId])
+  @@map("questions")
+}
+
+model TestExam {
+  id                  String       @id @default(cuid())
+  courseAssignmentId  String       @map("course_assignment_id")
+  title               String
+  type                TestExamType
+  description         String?      @db.Text
+  durationMinutes     Int          @map("duration_minutes")
+  totalMarks          Int          @map("total_marks")
+  passMark            Int          @map("pass_mark")
+  startTime           DateTime     @map("start_time")
+  endTime             DateTime     @map("end_time")
+  isProctored         Boolean      @default(false) @map("is_proctored")
+  shuffleQuestions    Boolean      @default(false) @map("shuffle_questions")
+  showResultsImmediately Boolean   @default(false) @map("show_results_immediately")
+  isPublished         Boolean      @default(false) @map("is_published")
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+
+  courseAssignment CourseAssignment  @relation(fields: [courseAssignmentId], references: [id], onDelete: Cascade)
+  questions        TestExamQuestion[]
+  attempts         TestExamAttempt[]
+
+  @@index([courseAssignmentId])
+  @@map("test_exams")
+}
+
+model TestExamQuestion {
+  id         String @id @default(cuid())
+  testExamId String @map("test_exam_id")
+  questionId String @map("question_id")
+  sortOrder  Int    @default(0) @map("sort_order")
+
+  testExam TestExam @relation(fields: [testExamId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([testExamId, questionId])
+  @@map("test_exam_questions")
+}
+
+model TestExamAttempt {
+  id          String        @id @default(cuid())
+  testExamId  String        @map("test_exam_id")
+  studentId   String        @map("student_id")
+  startedAt   DateTime      @default(now()) @map("started_at")
+  submittedAt DateTime?     @map("submitted_at")
+  totalScore  Int?          @map("total_score")
+  maxScore    Int           @map("max_score")
+  isPassed    Boolean?      @map("is_passed")
+  status      AttemptStatus @default(in_progress)
+  gradedById  String?       @map("graded_by_id")
+  gradedAt    DateTime?     @map("graded_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  testExam TestExam        @relation(fields: [testExamId], references: [id], onDelete: Cascade)
+  student  StudentProfile  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  gradedBy User?           @relation("GradedAttemptBy", fields: [gradedById], references: [id])
+  answers  TestExamAnswer[]
+
+  @@index([testExamId])
+  @@index([studentId])
+  @@map("test_exam_attempts")
+}
+
+model TestExamAnswer {
+  id             String   @id @default(cuid())
+  attemptId      String   @map("attempt_id")
+  questionId     String   @map("question_id")
+  selectedOption Json?    @map("selected_option") // for MCQ
+  answerText     String?  @map("answer_text") @db.Text // for essay/short answer
+  isCorrect      Boolean? @map("is_correct")
+  pointsAwarded  Int?     @map("points_awarded")
+  feedback       String?  @db.Text
+
+  attempt  TestExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@map("test_exam_answers")
+}
+
+model Grade {
+  id                  String   @id @default(cuid())
+  studentId           String   @map("student_id")
+  courseEnrollmentId  String   @unique @map("course_enrollment_id")
+  testScore           Decimal  @default(0) @map("test_score") @db.Decimal(5, 2)
+  examScore           Decimal  @default(0) @map("exam_score") @db.Decimal(5, 2)
+  assignmentScore     Decimal  @default(0) @map("assignment_score") @db.Decimal(5, 2)
+  totalScore          Decimal  @default(0) @map("total_score") @db.Decimal(5, 2)
+  gradePoint          Decimal  @default(0) @map("grade_point") @db.Decimal(3, 2)
+  letterGrade         String?  @map("letter_grade") // A, B, C, D, E, F
+  semesterId          String   @map("semester_id")
+  isReleased          Boolean  @default(false) @map("is_released")
+  releasedById        String?  @map("released_by_id")
+  releasedAt          DateTime? @map("released_at")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  student          StudentProfile  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseEnrollment CourseEnrollment @relation(fields: [courseEnrollmentId], references: [id], onDelete: Cascade)
+  semester         Semester         @relation(fields: [semesterId], references: [id])
+  releasedBy       User?           @relation("ReleasedBy", fields: [releasedById], references: [id])
+
+  @@index([studentId])
+  @@index([semesterId])
+  @@map("grades")
+}
+
+model TuitionFee {
+  id          String    @id @default(cuid())
+  programId   String    @map("program_id")
+  semesterId  String    @map("semester_id")
+  amount      Int       // in kobo
+  description String?
+  dueDate     DateTime  @map("due_date")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  program  Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
+  semester Semester          @relation(fields: [semesterId], references: [id])
+  payments TuitionPayment[]
+
+  @@index([programId])
+  @@index([semesterId])
+  @@map("tuition_fees")
+}
+
+model TuitionPayment {
+  id                    String               @id @default(cuid())
+  studentId             String               @map("student_id")
+  tuitionFeeId          String               @map("tuition_fee_id")
+  amount                Int                  // in kobo
+  paystackReference     String?              @unique @map("paystack_reference")
+  paystackTransactionId String?              @map("paystack_transaction_id")
+  status                TuitionPaymentStatus @default(pending)
+  paidAt                DateTime?            @map("paid_at")
+  receiptUrl            String?              @map("receipt_url")
+  createdAt             DateTime             @default(now()) @map("created_at")
+
+  student    StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  tuitionFee TuitionFee     @relation(fields: [tuitionFeeId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([tuitionFeeId])
+  @@map("tuition_payments")
+}
+
+model LmsCertificate {
+  id                String   @id @default(cuid())
+  studentId         String   @map("student_id")
+  programId         String   @map("program_id")
+  certificateNumber String   @unique @map("certificate_number") // e.g. "BBA/CERT/2025/001"
+  verificationCode  String   @unique @map("verification_code")
+  issueDate         DateTime @map("issue_date")
+  certificateUrl    String?  @map("certificate_url")
+  isValid           Boolean  @default(true) @map("is_valid")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  program Program        @relation(fields: [programId], references: [id])
+
+  @@index([studentId])
+  @@map("lms_certificates")
+}
+
+model AcademicCalendarEvent {
+  id          String            @id @default(cuid())
+  semesterId  String            @map("semester_id")
+  title       String
+  description String?           @db.Text
+  eventType   CalendarEventType @map("event_type")
+  startDate   DateTime          @map("start_date")
+  endDate     DateTime?         @map("end_date")
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  semester Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+
+  @@index([semesterId])
+  @@map("academic_calendar_events")
+}

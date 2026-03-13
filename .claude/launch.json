@@ -2,11 +2,39 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "dev",
+      "name": "lms-public",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["node_modules/next/dist/bin/next", "dev"],
+      "runtimeArgs": ["../../node_modules/next/dist/bin/next", "dev", "--port", "3001"],
+      "port": 3001,
+      "cwd": "apps/lms-public"
+    },
+    {
+      "name": "lms-portal",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["../../node_modules/next/dist/bin/next", "dev", "--port", "3002"],
+      "port": 3002,
+      "cwd": "apps/lms-portal"
+    },
+    {
+      "name": "lms-lecturer",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["../../node_modules/next/dist/bin/next", "dev", "--port", "3003"],
+      "port": 3003,
+      "cwd": "apps/lms-lecturer"
+    },
+    {
+      "name": "lms-admin",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["../../node_modules/next/dist/bin/next", "dev", "--port", "3004"],
+      "port": 3004,
+      "cwd": "apps/lms-admin"
+    },
+    {
+      "name": "audiobook",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["../../node_modules/next/dist/bin/next", "dev", "--port", "3000"],
       "port": 3000,
-      "autoPort": true
+      "cwd": "apps/audiobook"
     }
   ]
 }
