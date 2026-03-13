@@ -1,0 +1,6 @@
+{
+  "buildCommand": "npx prisma generate --schema=packages/db/prisma/schema.prisma && npx turbo build --filter=@repo/lms-public",
+  "outputDirectory": "apps/lms-public/.next",
+  "installCommand": "npm install",
+  "framework": "nextjs"
+}
