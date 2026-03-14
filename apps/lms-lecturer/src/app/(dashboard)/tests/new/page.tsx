@@ -135,6 +135,7 @@ function NewTestPageContent() {
     true_false: "T/F",
     short_answer: "Short",
     essay: "Essay",
+    fill_in_the_blank: "Fill",
   };
 
   return (

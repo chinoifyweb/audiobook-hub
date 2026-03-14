@@ -77,7 +77,6 @@ export default function GradeAttemptPage({ params }: Props) {
       const initial: Record<string, { points: number; feedback: string }> = {};
       data.answers.forEach((ans: AnswerData) => {
         if (
-          ans.question.questionType === "short_answer" ||
           ans.question.questionType === "essay"
         ) {
           initial[ans.id] = {
@@ -148,6 +147,7 @@ export default function GradeAttemptPage({ params }: Props) {
     true_false: "True/False",
     short_answer: "Short Answer",
     essay: "Essay",
+    fill_in_the_blank: "Fill in Blank",
   };
 
   return (
@@ -177,7 +177,8 @@ export default function GradeAttemptPage({ params }: Props) {
         {attempt.answers.map((ans, index) => {
           const isAutoGraded =
             ans.question.questionType === "mcq" ||
-            ans.question.questionType === "true_false";
+            ans.question.questionType === "true_false" ||
+            ans.question.questionType === "fill_in_the_blank";
 
           return (
             <Card key={ans.id}>
@@ -213,15 +214,21 @@ export default function GradeAttemptPage({ params }: Props) {
                 <p className="text-sm">{ans.question.questionText}</p>
 
                 {/* Show MCQ / True-False answer */}
-                {isAutoGraded && ans.selectedOption && (
+                {isAutoGraded && (ans.selectedOption || ans.answerText) && (
                   <div className="rounded-md bg-muted p-3 text-sm">
                     <p className="font-medium mb-1">Student&apos;s Answer:</p>
                     <p>
-                      {typeof ans.selectedOption === "object" &&
-                      "text" in ans.selectedOption
-                        ? ans.selectedOption.text
-                        : JSON.stringify(ans.selectedOption)}
+                      {ans.answerText
+                        ? ans.answerText
+                        : typeof ans.selectedOption === "object" &&
+                          ans.selectedOption &&
+                          "text" in ans.selectedOption
+                          ? ans.selectedOption.text
+                          : JSON.stringify(ans.selectedOption)}
                     </p>
+                    {ans.question.questionType === "fill_in_the_blank" && ans.question.correctAnswer && (
+                      <p className="mt-1 text-xs text-green-600">Expected: {ans.question.correctAnswer}</p>
+                    )}
                   </div>
                 )}
 

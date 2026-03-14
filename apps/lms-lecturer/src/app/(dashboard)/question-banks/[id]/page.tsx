@@ -119,7 +119,7 @@ export default function QuestionBankDetailPage({ params }: Props) {
           { text: "True", isCorrect: newQuestion.correctAnswer === "true" },
           { text: "False", isCorrect: newQuestion.correctAnswer === "false" },
         ];
-      } else if (newQuestion.questionType === "short_answer") {
+      } else if (newQuestion.questionType === "short_answer" || newQuestion.questionType === "fill_in_the_blank") {
         body.correctAnswer = newQuestion.correctAnswer;
       }
 
@@ -179,6 +179,7 @@ export default function QuestionBankDetailPage({ params }: Props) {
     true_false: "True/False",
     short_answer: "Short Answer",
     essay: "Essay",
+    fill_in_the_blank: "Fill in Blank",
   };
 
   return (
@@ -245,6 +246,7 @@ export default function QuestionBankDetailPage({ params }: Props) {
                       <SelectItem value="mcq">Multiple Choice</SelectItem>
                       <SelectItem value="true_false">True/False</SelectItem>
                       <SelectItem value="short_answer">Short Answer</SelectItem>
+                      <SelectItem value="fill_in_the_blank">Fill in the Blank</SelectItem>
                       <SelectItem value="essay">Essay</SelectItem>
                     </SelectContent>
                   </Select>
@@ -331,6 +333,26 @@ export default function QuestionBankDetailPage({ params }: Props) {
                     }
                     placeholder="Expected correct answer"
                   />
+                </div>
+              )}
+
+              {/* Fill in the Blank */}
+              {newQuestion.questionType === "fill_in_the_blank" && (
+                <div className="space-y-2">
+                  <Label>Correct Answer for the Blank</Label>
+                  <Input
+                    value={newQuestion.correctAnswer}
+                    onChange={(e) =>
+                      setNewQuestion({
+                        ...newQuestion,
+                        correctAnswer: e.target.value,
+                      })
+                    }
+                    placeholder="The word/phrase that fills the blank"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Use &quot;_____&quot; in the question text to indicate the blank. The answer is case-insensitive.
+                  </p>
                 </div>
               )}
 

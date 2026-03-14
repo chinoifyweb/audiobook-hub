@@ -101,6 +101,18 @@ export async function POST(
         pointsAwarded = isCorrect ? question.points : 0;
         totalScore += pointsAwarded;
       }
+      // Auto-grade fill in the blank (exact match, case-insensitive)
+      else if (
+        question.questionType === "fill_in_the_blank" &&
+        answer.answerText &&
+        question.correctAnswer
+      ) {
+        isCorrect =
+          answer.answerText.trim().toLowerCase() ===
+          question.correctAnswer.trim().toLowerCase();
+        pointsAwarded = isCorrect ? question.points : 0;
+        totalScore += pointsAwarded;
+      }
       // Essay — needs manual grading
       else if (question.questionType === "essay") {
         autoGradedAll = false;

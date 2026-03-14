@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, Mail, MapPin, Phone } from "lucide-react";
+import { BookOpen, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 
 const PORTAL_URL =
   process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.bba.org.ng";
@@ -99,11 +99,22 @@ export function Footer() {
               </li>
               <li>
                 <a
-                  href="tel:+2348000000000"
+                  href="tel:+2349027677276"
                   className="flex items-center gap-2 text-sm text-slate-400 transition-colors hover:text-white"
                 >
                   <Phone className="h-4 w-4 shrink-0" />
-                  <span>+234 800 000 0000</span>
+                  <span>+234 902 767 7276</span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://wa.me/2349027677276"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm text-slate-400 transition-colors hover:text-white"
+                >
+                  <MessageCircle className="h-4 w-4 shrink-0" />
+                  <span>WhatsApp Enquiries</span>
                 </a>
               </li>
             </ul>

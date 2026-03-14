@@ -264,6 +264,26 @@ export default function TestTakePage() {
               />
             )}
 
+            {/* Fill in the Blank */}
+            {currentQuestion.questionType === "fill_in_the_blank" && (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Fill in the blank(s). If multiple blanks, separate answers with a comma.
+                </p>
+                <input
+                  type="text"
+                  className="flex h-10 w-full rounded-md border-2 border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  placeholder="Type your answer(s) here..."
+                  value={currentAnswer?.answerText || ""}
+                  onChange={(e) =>
+                    setAnswer(currentQuestion.id, {
+                      answerText: e.target.value,
+                    })
+                  }
+                />
+              </div>
+            )}
+
             {/* Essay */}
             {currentQuestion.questionType === "essay" && (
               <textarea

@@ -3,7 +3,7 @@ import { create } from "zustand";
 export interface TestQuestion {
   id: string;
   questionText: string;
-  questionType: "mcq" | "true_false" | "short_answer" | "essay";
+  questionType: "mcq" | "true_false" | "short_answer" | "essay" | "fill_in_the_blank";
   options: { text: string; isCorrect: boolean }[] | null;
   points: number;
   sortOrder: number;
