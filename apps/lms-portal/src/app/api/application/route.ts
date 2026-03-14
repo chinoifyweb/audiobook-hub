@@ -5,14 +5,9 @@ import { prisma } from "@repo/db";
 
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const url = new URL(request.url);
 
-    // If requesting programs list
+    // Programs list is public — no auth required
     if (url.searchParams.get("programs") === "true") {
       const programs = await prisma.program.findMany({
         where: { isActive: true },
@@ -26,6 +21,12 @@ export async function GET(request: Request) {
         orderBy: { name: "asc" },
       });
       return NextResponse.json({ programs });
+    }
+
+    // All other queries require auth
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Return user's applications

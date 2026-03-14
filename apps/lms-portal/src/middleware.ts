@@ -8,8 +8,12 @@ const applicationRoutes = ["/application"];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow NextAuth API routes and webhook routes
-  if (pathname.startsWith("/api/auth") || pathname.startsWith("/api/webhooks")) {
+  // Allow NextAuth API routes, webhook routes, and application API (programs list is public)
+  if (
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/webhooks") ||
+    pathname.startsWith("/api/application")
+  ) {
     return NextResponse.next();
   }
 
