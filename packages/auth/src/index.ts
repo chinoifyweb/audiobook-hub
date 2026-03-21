@@ -134,6 +134,28 @@ export function createAuthOptions(config: AuthAppConfig): NextAuthOptions {
           token.role = session.role;
         }
 
+        // Refresh role from DB periodically to pick up admin changes (e.g. admission acceptance)
+        if (token.id && !user) {
+          const lastRefresh = (token.roleRefreshedAt as number) || 0;
+          const now = Date.now();
+          // Refresh every 60 seconds
+          if (now - lastRefresh > 60_000) {
+            try {
+              const dbUser = await prisma.user.findUnique({
+                where: { id: token.id as string },
+                select: { role: true, fullName: true },
+              });
+              if (dbUser) {
+                token.role = dbUser.role;
+                token.name = dbUser.fullName;
+              }
+              token.roleRefreshedAt = now;
+            } catch {
+              // DB unavailable — keep existing token values
+            }
+          }
+        }
+
         return token;
       },
       async session({ session, token }) {
