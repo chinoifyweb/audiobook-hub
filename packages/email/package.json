@@ -5,10 +5,12 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "resend": "^6.9.3",
-    "@react-email/components": "^1.0.8"
+    "@react-email/components": "^1.0.8",
+    "nodemailer": "^7.0.13",
+    "resend": "^6.9.3"
   },
   "devDependencies": {
+    "@types/nodemailer": "^7.0.11",
     "typescript": "^5"
   }
 }
