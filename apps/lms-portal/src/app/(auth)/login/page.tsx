@@ -147,7 +147,7 @@ function LoginForm() {
               <Link href="/signup">Create Account &amp; Apply</Link>
             </Button>
             <p className="text-muted-foreground">
-              <Link href="/application/status" className="text-primary hover:underline">
+              <Link href="/track" className="text-primary hover:underline">
                 Track an existing application
               </Link>
             </p>

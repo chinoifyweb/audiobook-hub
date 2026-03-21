@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const publicRoutes = ["/login", "/signup", "/forgot-password"];
+const authRoutes = ["/login", "/signup"]; // redirect away if already logged in
+const alwaysPublic = ["/forgot-password", "/track"]; // always accessible
 const applicationRoutes = ["/application"];
 
 export async function middleware(request: NextRequest) {
@@ -22,10 +23,14 @@ export async function middleware(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
-  // Public routes — allow unauthenticated access
-  if (publicRoutes.some((route) => pathname.startsWith(route))) {
+  // Always-public routes — accessible regardless of auth status
+  if (alwaysPublic.some((route) => pathname.startsWith(route))) {
+    return NextResponse.next();
+  }
+
+  // Auth routes (login/signup) — redirect away if already logged in
+  if (authRoutes.some((route) => pathname.startsWith(route))) {
     if (token) {
-      // Already authenticated — redirect to dashboard or application
       const role = token.role as string;
       if (role === "student") {
         return NextResponse.redirect(new URL("/", request.url));
