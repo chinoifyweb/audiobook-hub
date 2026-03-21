@@ -1,10 +1,69 @@
-import { requireStudent } from "@/lib/auth";
-import { Card, CardContent, CardHeader, CardTitle, Button, Separator } from "@repo/ui";
-import { IdCard, Printer, User } from "lucide-react";
-import { format } from "date-fns";
+"use client";
 
-export default async function IdCardPage() {
-  const { studentProfile } = await requireStudent();
+import { useState, useEffect } from "react";
+import { Card, CardContent, Separator, Button } from "@repo/ui";
+import { IdCard, Printer, Download, User, Loader2 } from "lucide-react";
+
+interface StudentData {
+  fullName: string;
+  studentId: string;
+  programName: string;
+  departmentName: string;
+  photoUrl: string | null;
+  enrollmentDate: string;
+  expectedGraduation: string | null;
+  status: string;
+  currentSemester: number;
+}
+
+export default function IdCardPage() {
+  const [student, setStudent] = useState<StudentData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function fetchProfile() {
+      try {
+        const res = await fetch("/api/student/profile");
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || "Failed to load profile");
+          return;
+        }
+        setStudent(data.student);
+      } catch {
+        setError("Failed to load student data");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProfile();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !student) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Student ID Card</h1>
+          <p className="text-muted-foreground">Your official student identification</p>
+        </div>
+        <Card>
+          <CardContent className="py-8 text-center">
+            <IdCard className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">{error || "Student profile not found. Please contact admin."}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -15,23 +74,23 @@ export default async function IdCardPage() {
             Your official student identification
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => {}}
-          className="print:hidden"
-          id="print-btn"
-        >
-          <Printer className="mr-2 h-4 w-4" />
-          Print ID Card
-        </Button>
+        <div className="flex gap-2 print:hidden">
+          <Button
+            variant="outline"
+            onClick={() => window.print()}
+          >
+            <Printer className="mr-2 h-4 w-4" />
+            Print
+          </Button>
+        </div>
       </div>
 
       {/* ID Card */}
       <div className="flex justify-center">
         <div className="w-[400px]" id="id-card">
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden shadow-lg">
             {/* Header */}
-            <div className="bg-gradient-to-r from-primary to-blue-700 text-primary-foreground p-4 text-center">
+            <div className="bg-gradient-to-r from-[#1e3a5f] to-[#2d5a8e] text-white p-4 text-center">
               <h2 className="text-lg font-bold tracking-wide">
                 BEREAN BIBLE ACADEMY
               </h2>
@@ -44,14 +103,14 @@ export default async function IdCardPage() {
               <div className="flex gap-4">
                 {/* Photo */}
                 <div className="shrink-0">
-                  {studentProfile.photoUrl ? (
+                  {student.photoUrl ? (
                     <img
-                      src={studentProfile.photoUrl}
+                      src={student.photoUrl}
                       alt="Student photo"
-                      className="h-28 w-24 rounded-lg object-cover border"
+                      className="h-28 w-24 rounded-lg object-cover border-2 border-[#1e3a5f]"
                     />
                   ) : (
-                    <div className="h-28 w-24 rounded-lg bg-muted flex items-center justify-center border">
+                    <div className="h-28 w-24 rounded-lg bg-muted flex items-center justify-center border-2 border-dashed border-muted-foreground/30">
                       <User className="h-12 w-12 text-muted-foreground" />
                     </div>
                   )}
@@ -60,20 +119,20 @@ export default async function IdCardPage() {
                 {/* Info */}
                 <div className="space-y-2 text-sm flex-1">
                   <div>
-                    <p className="text-xs text-muted-foreground">Full Name</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Full Name</p>
                     <p className="font-bold text-base">
-                      {studentProfile.user?.fullName || "Student"}
+                      {student.fullName}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Student ID</p>
-                    <p className="font-mono font-bold">
-                      {studentProfile.studentId}
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Student ID</p>
+                    <p className="font-mono font-bold text-[#1e3a5f]">
+                      {student.studentId}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Program</p>
-                    <p>{studentProfile.program.name}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Program</p>
+                    <p className="text-sm">{student.programName}</p>
                   </div>
                 </div>
               </div>
@@ -82,68 +141,37 @@ export default async function IdCardPage() {
 
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
-                  <p className="text-muted-foreground">Department</p>
+                  <p className="text-muted-foreground text-[10px] uppercase tracking-wider">Department</p>
+                  <p className="font-medium">{student.departmentName}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-[10px] uppercase tracking-wider">Enrolled</p>
                   <p className="font-medium">
-                    {studentProfile.program.department.name}
+                    {new Date(student.enrollmentDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
                   </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Enrolled</p>
-                  <p className="font-medium">
-                    {format(
-                      new Date(studentProfile.enrollmentDate),
-                      "MMM yyyy"
-                    )}
-                  </p>
+                  <p className="text-muted-foreground text-[10px] uppercase tracking-wider">Status</p>
+                  <p className="font-medium capitalize">{student.status}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Status</p>
-                  <p className="font-medium capitalize">
-                    {studentProfile.status}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Semester</p>
-                  <p className="font-medium">
-                    {studentProfile.currentSemester}
-                  </p>
-                </div>
-              </div>
-
-              {/* QR Code Placeholder */}
-              <div className="mt-4 flex justify-center">
-                <div className="h-20 w-20 rounded bg-muted flex items-center justify-center border">
-                  <span className="text-[10px] text-muted-foreground text-center">
-                    QR Code
-                  </span>
+                  <p className="text-muted-foreground text-[10px] uppercase tracking-wider">Semester</p>
+                  <p className="font-medium">{student.currentSemester}</p>
                 </div>
               </div>
             </CardContent>
 
             {/* Footer */}
-            <div className="bg-muted px-4 py-2 text-center text-xs text-muted-foreground">
+            <div className="bg-[#1e3a5f] px-4 py-2 text-center text-xs text-white/80">
               If found, please return to Berean Bible Academy
             </div>
           </Card>
         </div>
       </div>
 
-      {/* Print Script */}
-      <PrintScript />
+      <p className="text-center text-xs text-muted-foreground print:hidden">
+        Use the print button to save or print your ID card.
+      </p>
     </div>
-  );
-}
-
-function PrintScript() {
-  return (
-    <script
-      dangerouslySetInnerHTML={{
-        __html: `
-          document.getElementById('print-btn')?.addEventListener('click', function() {
-            window.print();
-          });
-        `,
-      }}
-    />
   );
 }

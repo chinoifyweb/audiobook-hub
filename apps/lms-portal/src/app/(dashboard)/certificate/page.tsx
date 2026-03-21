@@ -9,10 +9,11 @@ import {
   Progress,
   Button,
 } from "@repo/ui";
-import { Award, Download, ShieldCheck, GraduationCap } from "lucide-react";
+import { Award, Download, ShieldCheck, GraduationCap, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 
 export default async function CertificatePage() {
+  try {
   const { studentProfile } = await requireStudent();
 
   // Check for certificate
@@ -166,4 +167,17 @@ export default async function CertificatePage() {
       </Card>
     </div>
   );
+  } catch {
+    return (
+      <div className="space-y-6">
+        <div><h1 className="text-2xl font-bold">Certificate</h1></div>
+        <Card>
+          <CardContent className="py-8 text-center">
+            <AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-4" />
+            <p className="text-muted-foreground">Failed to load certificate data. Please refresh the page.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 }

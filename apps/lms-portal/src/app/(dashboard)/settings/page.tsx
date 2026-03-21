@@ -48,10 +48,6 @@ export default function SettingsPage() {
   const [changingPassword, setChangingPassword] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/signup") // Reuse GET for profile data - or create dedicated endpoint
-      .catch(() => {});
-
-    // Fetch profile from a simple endpoint
     async function fetchProfile() {
       try {
         const res = await fetch("/api/settings");

@@ -1,11 +1,12 @@
 import { requireStudent } from "@/lib/auth";
 import { prisma } from "@repo/db";
 import { Card, CardContent, Badge, Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui";
-import { ClipboardCheck } from "lucide-react";
+import { ClipboardCheck, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 
 export default async function TestsPage() {
+  try {
   const { studentProfile } = await requireStudent();
 
   const enrollments = await prisma.courseEnrollment.findMany({
@@ -152,4 +153,17 @@ export default async function TestsPage() {
       </Tabs>
     </div>
   );
+  } catch {
+    return (
+      <div className="space-y-6">
+        <div><h1 className="text-2xl font-bold">Tests & Exams</h1></div>
+        <Card>
+          <CardContent className="py-8 text-center">
+            <AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-4" />
+            <p className="text-muted-foreground">Failed to load tests. Please refresh the page.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 }
