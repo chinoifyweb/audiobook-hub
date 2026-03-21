@@ -19,7 +19,8 @@ import {
   SelectValue,
   Separator,
 } from "@repo/ui";
-import { BookOpen, ChevronLeft, ChevronRight, Loader2, Plus, Trash2 } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, FileText, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
+import { uploadDocument, deleteDocument } from "@/lib/supabase";
 
 interface ProgramOption {
   id: string;
@@ -33,6 +34,13 @@ interface EducationEntry {
   institution: string;
   qualification: string;
   year: string;
+}
+
+interface UploadedDoc {
+  name: string;
+  url: string;
+  path: string;
+  size: number;
 }
 
 interface FormData {
@@ -64,6 +72,8 @@ export default function ApplicationPage() {
   const [programs, setPrograms] = useState<ProgramOption[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [uploadedDocs, setUploadedDocs] = useState<UploadedDoc[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     firstName: "",
@@ -428,14 +438,126 @@ export default function ApplicationPage() {
             {step === 3 && (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Upload supporting documents. You can also submit these later.
+                  Upload supporting documents (transcripts, certificates, ID, passport photo).
+                  Accepted formats: PDF, JPEG, PNG, DOC/DOCX. Max 10MB per file.
                 </p>
-                <div className="rounded-lg border-2 border-dashed border-muted-foreground/25 p-8 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    Document upload will be available soon. You may proceed to submit
-                    your application and upload documents later.
-                  </p>
-                </div>
+
+                {/* Upload area */}
+                <label
+                  htmlFor="file-upload"
+                  className={`flex cursor-pointer flex-col items-center gap-3 rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
+                    uploading
+                      ? "border-primary/50 bg-primary/5"
+                      : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50"
+                  }`}
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <span className="text-sm text-muted-foreground">Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-8 w-8 text-muted-foreground" />
+                      <div>
+                        <span className="text-sm font-medium text-primary">Click to upload</span>
+                        <span className="text-sm text-muted-foreground"> or drag and drop</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        PDF, JPEG, PNG, DOC, DOCX (max 10MB)
+                      </span>
+                    </>
+                  )}
+                  <input
+                    id="file-upload"
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    multiple
+                    disabled={uploading}
+                    onChange={async (e) => {
+                      const files = e.target.files;
+                      if (!files || files.length === 0) return;
+
+                      setUploading(true);
+                      setError("");
+
+                      const folder = `applications/${session?.user?.id || "anon"}`;
+
+                      for (const file of Array.from(files)) {
+                        if (file.size > 10 * 1024 * 1024) {
+                          setError(`File "${file.name}" exceeds 10MB limit`);
+                          continue;
+                        }
+
+                        const result = await uploadDocument(file, folder);
+                        if (result) {
+                          const doc: UploadedDoc = {
+                            name: file.name,
+                            url: result.url,
+                            path: result.path,
+                            size: file.size,
+                          };
+                          setUploadedDocs((prev) => [...prev, doc]);
+                          setFormData((prev) => ({
+                            ...prev,
+                            documents: [...prev.documents, result.url],
+                          }));
+                        } else {
+                          setError(`Failed to upload "${file.name}". Please try again.`);
+                        }
+                      }
+
+                      setUploading(false);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+
+                {/* Uploaded files list */}
+                {uploadedDocs.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      Uploaded Documents ({uploadedDocs.length})
+                    </Label>
+                    {uploadedDocs.map((doc, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText className="h-4 w-4 shrink-0 text-primary" />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{doc.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {(doc.size / 1024).toFixed(0)} KB
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="shrink-0"
+                          onClick={async () => {
+                            await deleteDocument(doc.path);
+                            setUploadedDocs((prev) => prev.filter((_, i) => i !== index));
+                            setFormData((prev) => ({
+                              ...prev,
+                              documents: prev.documents.filter((u) => u !== doc.url),
+                            }));
+                          }}
+                        >
+                          <X className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <p className="text-xs text-muted-foreground">
+                  Documents are optional. You can upload them now or submit them later
+                  through your application status page.
+                </p>
               </div>
             )}
 
@@ -484,6 +606,29 @@ export default function ApplicationPage() {
                       <span className="text-muted-foreground">No program selected</span>
                     )}
                   </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <h4 className="font-medium">Documents</h4>
+                  {uploadedDocs.length > 0 ? (
+                    <div className="space-y-1">
+                      {uploadedDocs.map((doc, i) => (
+                        <div key={i} className="flex items-center gap-2 text-sm">
+                          <FileText className="h-3.5 w-3.5 text-primary" />
+                          <span>{doc.name}</span>
+                          <span className="text-muted-foreground">
+                            ({(doc.size / 1024).toFixed(0)} KB)
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No documents uploaded (can be submitted later)
+                    </p>
+                  )}
                 </div>
               </div>
             )}

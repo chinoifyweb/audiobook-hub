@@ -9,13 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@repo/db": "*",
-    "@repo/ui": "*",
     "@repo/auth": "*",
-    "@repo/types": "*",
+    "@repo/db": "*",
     "@repo/email": "*",
     "@repo/paystack": "*",
     "@repo/pdf": "*",
+    "@repo/types": "*",
+    "@repo/ui": "*",
+    "@supabase/supabase-js": "^2.99.3",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.577.0",
     "next": "14.2.35",
