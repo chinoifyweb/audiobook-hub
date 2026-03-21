@@ -35,8 +35,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Not authenticated — redirect to login
+  // Not authenticated — redirect appropriately
   if (!token) {
+    // Application pages redirect to signup (new applicants need an account)
+    if (applicationRoutes.some((route) => pathname.startsWith(route))) {
+      const signupUrl = new URL("/signup", request.url);
+      signupUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(signupUrl);
+    }
+    // All other pages redirect to login
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
