@@ -1,6 +1,6 @@
 import { prisma } from "@repo/db";
 import { notFound } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
+import { Card, CardContent, CardHeader, CardTitle, Badge } from "@repo/ui";
 import { format } from "date-fns";
 import { ApplicationActions } from "./application-actions";
 
@@ -41,10 +41,15 @@ export default async function ApplicationDetailPage({ params }: Props) {
     year?: string;
   }> | null;
 
-  const documents = application.documents as Array<{
-    name?: string;
-    url?: string;
-  }> | null;
+  // Documents can be either {name, url} objects or plain URL strings
+  const rawDocs = application.documents as Array<string | { name?: string; url?: string }> | null;
+  const documents = rawDocs?.map((doc, idx) => {
+    if (typeof doc === "string") {
+      const fileName = doc.split("/").pop() || `Document ${idx + 1}`;
+      return { name: fileName, url: doc };
+    }
+    return { name: doc.name || `Document ${idx + 1}`, url: doc.url || "" };
+  }) || null;
 
   const canTakeAction =
     application.status === "submitted" || application.status === "under_review";
@@ -170,29 +175,57 @@ export default async function ApplicationDetailPage({ params }: Props) {
         {/* Documents */}
         <Card>
           <CardHeader>
-            <CardTitle>Documents</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Documents</span>
+              {documents && documents.length > 0 && (
+                <Badge variant="secondary">{documents.length} file{documents.length > 1 ? "s" : ""}</Badge>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {documents && documents.length > 0 ? (
               <div className="space-y-2">
-                {documents.map((doc, idx) => (
-                  <div key={idx} className="flex items-center justify-between rounded-md border p-3">
-                    <p className="text-sm font-medium">{doc.name || `Document ${idx + 1}`}</p>
-                    {doc.url && (
-                      <a
-                        href={doc.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-primary underline"
-                      >
-                        View
-                      </a>
-                    )}
-                  </div>
-                ))}
+                {documents.map((doc, idx) => {
+                  const ext = doc.name.split(".").pop()?.toLowerCase() || "";
+                  const isImage = ["jpg", "jpeg", "png"].includes(ext);
+                  const isPdf = ext === "pdf";
+                  return (
+                    <div key={idx} className="flex items-center justify-between rounded-md border p-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold uppercase ${
+                          isPdf ? "bg-red-100 text-red-700" : isImage ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"
+                        }`}>
+                          {ext.slice(0, 4)}
+                        </div>
+                        <p className="truncate text-sm font-medium">{doc.name}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {doc.url && (
+                          <>
+                            <a
+                              href={doc.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-muted"
+                            >
+                              View
+                            </a>
+                            <a
+                              href={doc.url}
+                              download={doc.name}
+                              className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                            >
+                              Download
+                            </a>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No documents uploaded.</p>
+              <p className="text-sm text-muted-foreground">No documents uploaded by applicant.</p>
             )}
           </CardContent>
         </Card>

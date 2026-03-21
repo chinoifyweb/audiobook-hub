@@ -43,6 +43,11 @@ interface UploadedDoc {
   size: number;
 }
 
+interface DocEntry {
+  name: string;
+  url: string;
+}
+
 interface FormData {
   firstName: string;
   lastName: string;
@@ -53,7 +58,7 @@ interface FormData {
   address: string;
   previousEducation: EducationEntry[];
   programId: string;
-  documents: string[];
+  documents: DocEntry[];
 }
 
 const STEPS = [
@@ -473,39 +478,37 @@ export default function ApplicationPage() {
                     type="file"
                     className="hidden"
                     accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                    multiple
                     disabled={uploading}
                     onChange={async (e) => {
-                      const files = e.target.files;
-                      if (!files || files.length === 0) return;
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+
+                      if (file.size > 10 * 1024 * 1024) {
+                        setError(`File "${file.name}" exceeds 10MB limit`);
+                        e.target.value = "";
+                        return;
+                      }
 
                       setUploading(true);
                       setError("");
 
                       const folder = `applications/${session?.user?.id || "anon"}`;
+                      const result = await uploadDocument(file, folder);
 
-                      for (const file of Array.from(files)) {
-                        if (file.size > 10 * 1024 * 1024) {
-                          setError(`File "${file.name}" exceeds 10MB limit`);
-                          continue;
-                        }
-
-                        const result = await uploadDocument(file, folder);
-                        if (result) {
-                          const doc: UploadedDoc = {
-                            name: file.name,
-                            url: result.url,
-                            path: result.path,
-                            size: file.size,
-                          };
-                          setUploadedDocs((prev) => [...prev, doc]);
-                          setFormData((prev) => ({
-                            ...prev,
-                            documents: [...prev.documents, result.url],
-                          }));
-                        } else {
-                          setError(`Failed to upload "${file.name}". Please try again.`);
-                        }
+                      if (result) {
+                        const doc: UploadedDoc = {
+                          name: file.name,
+                          url: result.url,
+                          path: result.path,
+                          size: file.size,
+                        };
+                        setUploadedDocs((prev) => [...prev, doc]);
+                        setFormData((prev) => ({
+                          ...prev,
+                          documents: [...prev.documents, { name: file.name, url: result.url }],
+                        }));
+                      } else {
+                        setError(`Failed to upload "${file.name}". Please try again.`);
                       }
 
                       setUploading(false);
@@ -543,7 +546,7 @@ export default function ApplicationPage() {
                             setUploadedDocs((prev) => prev.filter((_, i) => i !== index));
                             setFormData((prev) => ({
                               ...prev,
-                              documents: prev.documents.filter((u) => u !== doc.url),
+                              documents: prev.documents.filter((d) => d.url !== doc.url),
                             }));
                           }}
                         >
