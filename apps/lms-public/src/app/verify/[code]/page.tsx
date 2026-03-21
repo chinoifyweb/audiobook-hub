@@ -1,29 +1,52 @@
-import { prisma } from "@repo/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
 import { CheckCircle, XCircle, GraduationCap } from "lucide-react";
+import { getDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
+
+interface CertificateData {
+  certificateNumber: string;
+  verificationCode: string;
+  issueDate: Date;
+  student: {
+    user: { fullName: string | null };
+    program: {
+      name: string;
+      degreeType: string;
+    };
+  };
+}
 
 export default async function VerifyCertificatePage({
   params,
 }: {
   params: { code: string };
 }) {
-  const certificate = await prisma.lmsCertificate.findUnique({
-    where: { verificationCode: params.code },
-    include: {
-      student: {
+  let certificate: CertificateData | null = null;
+  let dbError = false;
+
+  try {
+    const db = await getDb();
+    if (db) {
+      certificate = await (db as any).lmsCertificate.findUnique({
+        where: { verificationCode: params.code },
         include: {
-          user: { select: { fullName: true } },
-          program: {
+          student: {
             include: {
-              department: { include: { faculty: true } },
+              user: { select: { fullName: true } },
+              program: {
+                select: { name: true, degreeType: true },
+              },
             },
           },
         },
-      },
-    },
-  });
+      });
+    } else {
+      dbError = true;
+    }
+  } catch {
+    dbError = true;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
@@ -40,7 +63,17 @@ export default async function VerifyCertificatePage({
           </p>
         </CardHeader>
         <CardContent>
-          {certificate ? (
+          {dbError ? (
+            <div className="space-y-4 text-center">
+              <div className="flex items-center justify-center gap-2 text-amber-600">
+                <XCircle className="h-6 w-6" />
+                <span className="font-semibold text-lg">Service Temporarily Unavailable</span>
+              </div>
+              <p className="text-muted-foreground">
+                Certificate verification is temporarily unavailable. Please try again later or contact the registrar&apos;s office.
+              </p>
+            </div>
+          ) : certificate ? (
             <div className="space-y-4">
               <div className="flex items-center justify-center gap-2 text-green-600">
                 <CheckCircle className="h-6 w-6" />
