@@ -8,6 +8,8 @@ import { formatNaira, degreeTypeLabel } from "@/lib/format";
 const PORTAL_URL =
   process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.bba.org.ng";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Tuition & Fees",
   description:

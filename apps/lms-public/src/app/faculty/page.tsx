@@ -3,6 +3,8 @@ import { Card, CardContent, Badge } from "@repo/ui";
 import { GraduationCap, Users } from "lucide-react";
 import { getDb } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Faculty",
   description:

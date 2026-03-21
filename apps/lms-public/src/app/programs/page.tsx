@@ -5,6 +5,8 @@ import { ArrowRight, Clock, BookOpen, GraduationCap } from "lucide-react";
 import { getDb } from "@/lib/db";
 import { formatNaira, degreeTypeLabel, semesterDuration } from "@/lib/format";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Programs",
   description:
