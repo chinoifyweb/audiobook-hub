@@ -7,11 +7,12 @@ import {
   Badge,
   Button,
 } from "@repo/ui";
-import { Database, Plus } from "lucide-react";
+import { Database, Plus, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { requireLecturer, getActiveSemester } from "@/lib/auth";
 
 export default async function QuestionBanksPage() {
+  try {
   const lecturer = await requireLecturer();
   const activeSemester = await getActiveSemester();
 
@@ -109,4 +110,15 @@ export default async function QuestionBanksPage() {
       )}
     </div>
   );
+  } catch {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold">Question Banks</h1>
+        <Card><CardContent className="py-8 text-center">
+          <AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-4" />
+          <p className="text-muted-foreground">Failed to load question banks. Please refresh.</p>
+        </CardContent></Card>
+      </div>
+    );
+  }
 }

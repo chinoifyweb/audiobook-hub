@@ -7,12 +7,13 @@ import {
   Badge,
   Button,
 } from "@repo/ui";
-import { FileQuestion } from "lucide-react";
+import { FileQuestion, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { requireLecturer, getActiveSemester } from "@/lib/auth";
 
 export default async function TestsPage() {
+  try {
   const lecturer = await requireLecturer();
   const activeSemester = await getActiveSemester();
 
@@ -118,4 +119,15 @@ export default async function TestsPage() {
       )}
     </div>
   );
+  } catch {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold">Tests & Exams</h1>
+        <Card><CardContent className="py-8 text-center">
+          <AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-4" />
+          <p className="text-muted-foreground">Failed to load tests. Please refresh.</p>
+        </CardContent></Card>
+      </div>
+    );
+  }
 }
