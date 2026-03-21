@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -19,7 +19,7 @@ import {
   SelectValue,
   Separator,
 } from "@repo/ui";
-import { BookOpen, CheckCircle, ChevronLeft, ChevronRight, Copy, FileText, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
+import { BookOpen, CheckCircle, ChevronLeft, ChevronRight, Copy, FileText, Loader2, LogOut, Plus, Trash2, Upload, X } from "lucide-react";
 import { uploadDocument, deleteDocument } from "@/lib/supabase";
 
 interface ProgramOption {
@@ -259,6 +259,15 @@ export default function ApplicationPage() {
       <div className="mx-auto max-w-2xl">
         {/* Header */}
         <div className="text-center mb-8">
+          <div className="flex justify-end mb-2">
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Sign Out
+            </button>
+          </div>
           <div className="flex justify-center mb-4">
             <div className="rounded-full bg-primary/10 p-3">
               <BookOpen className="h-8 w-8 text-primary" />
@@ -266,6 +275,11 @@ export default function ApplicationPage() {
           </div>
           <h1 className="text-2xl font-bold">Berean Bible Academy</h1>
           <p className="text-muted-foreground">Student Admission Application</p>
+          {session?.user?.email && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Signed in as {session.user.email}
+            </p>
+          )}
         </div>
 
         {/* Step Indicator */}
