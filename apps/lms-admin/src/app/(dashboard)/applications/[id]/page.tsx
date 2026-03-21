@@ -221,8 +221,9 @@ export default async function ApplicationDetailPage({ params }: Props) {
                               View
                             </a>
                             <a
-                              href={doc.url}
-                              download={doc.name}
+                              href={`${doc.url}?download=`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                             >
                               Download
