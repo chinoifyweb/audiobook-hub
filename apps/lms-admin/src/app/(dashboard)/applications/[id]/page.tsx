@@ -97,6 +97,16 @@ export default async function ApplicationDetailPage({ params }: Props) {
                 <p className="font-medium">{application.phone || "—"}</p>
               </div>
               <div>
+                <p className="text-sm text-muted-foreground">WhatsApp</p>
+                <p className="font-medium">
+                  {(application as any).whatsappNumber ? (
+                    <a href={`https://wa.me/${((application as any).whatsappNumber as string).replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline">
+                      {(application as any).whatsappNumber}
+                    </a>
+                  ) : "—"}
+                </p>
+              </div>
+              <div>
                 <p className="text-sm text-muted-foreground">Date of Birth</p>
                 <p className="font-medium">
                   {application.dateOfBirth

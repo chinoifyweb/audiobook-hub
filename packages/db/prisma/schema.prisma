@@ -641,11 +641,13 @@ model LmsApplication {
   lastName          String            @map("last_name")
   email             String
   phone             String?
+  whatsappNumber    String?           @map("whatsapp_number")
   dateOfBirth       DateTime?         @map("date_of_birth")
   gender            String?
   address           String?           @db.Text
   previousEducation Json?             @map("previous_education")
   documents         Json?             // uploaded document URLs
+  trackingCode      String?           @unique @map("tracking_code") // short tracking code
   admissionLetterUrl String?          @map("admission_letter_url")
   rejectionReason   String?           @map("rejection_reason") @db.Text
   reviewedById      String?           @map("reviewed_by_id")

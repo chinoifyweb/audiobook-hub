@@ -37,6 +37,10 @@ export async function middleware(request: NextRequest) {
 
   // Not authenticated — redirect appropriately
   if (!token) {
+    // Tracking pages are public — no login required
+    if (pathname.startsWith("/application/track/")) {
+      return NextResponse.next();
+    }
     // Application pages redirect to signup (new applicants need an account)
     if (applicationRoutes.some((route) => pathname.startsWith(route))) {
       const signupUrl = new URL("/signup", request.url);

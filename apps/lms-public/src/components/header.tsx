@@ -55,10 +55,10 @@ export function Header() {
         {/* Desktop CTA */}
         <div className="hidden items-center gap-3 lg:flex">
           <Button variant="outline" size="sm" asChild>
-            <Link href={`${PORTAL_URL}/login`}>Student Portal</Link>
+            <Link href={`${PORTAL_URL}/login`}>Student Login</Link>
           </Button>
           <Button size="sm" asChild>
-            <Link href={`${PORTAL_URL}/application`}>Apply Now</Link>
+            <Link href={`${PORTAL_URL}/signup`}>Apply Now</Link>
           </Button>
         </div>
 
@@ -96,10 +96,10 @@ export function Header() {
           ))}
           <div className="mt-3 flex flex-col gap-2 border-t pt-3">
             <Button variant="outline" size="sm" asChild>
-              <Link href={`${PORTAL_URL}/login`}>Student Portal</Link>
+              <Link href={`${PORTAL_URL}/login`}>Student Login</Link>
             </Button>
             <Button size="sm" asChild>
-              <Link href={`${PORTAL_URL}/application`}>Apply Now</Link>
+              <Link href={`${PORTAL_URL}/signup`}>Apply Now</Link>
             </Button>
           </div>
         </nav>

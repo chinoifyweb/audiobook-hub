@@ -3,6 +3,15 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@repo/db";
 
+function generateTrackingCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 8; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
@@ -23,6 +32,35 @@ export async function GET(request: Request) {
       return NextResponse.json({ programs });
     }
 
+    // Track by code — public
+    const trackCode = url.searchParams.get("track");
+    if (trackCode) {
+      const application = await prisma.lmsApplication.findUnique({
+        where: { trackingCode: trackCode },
+        include: {
+          program: { select: { name: true, code: true } },
+          student: { select: { studentId: true, currentSemester: true } },
+        },
+      });
+      if (!application) {
+        return NextResponse.json({ error: "Application not found" }, { status: 404 });
+      }
+      return NextResponse.json({
+        application: {
+          applicationNumber: application.applicationNumber,
+          status: application.status,
+          firstName: application.firstName,
+          lastName: application.lastName,
+          email: application.email,
+          program: application.program,
+          rejectionReason: application.rejectionReason,
+          admissionLetterUrl: application.admissionLetterUrl,
+          student: application.student,
+          createdAt: application.createdAt,
+        },
+      });
+    }
+
     // All other queries require auth
     const session = await getServerSession(authOptions);
     if (!session?.user) {
@@ -34,6 +72,7 @@ export async function GET(request: Request) {
       where: { userId: session.user.id },
       include: {
         program: { select: { name: true, code: true } },
+        student: { select: { studentId: true, currentSemester: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -61,6 +100,7 @@ export async function POST(request: Request) {
       lastName,
       email,
       phone,
+      whatsappNumber,
       dateOfBirth,
       gender,
       address,
@@ -97,14 +137,27 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate application number: BBA/APP/YYYY/NNNN
+    // Generate application number with program code: BBA/CERT-BIB/2026/0001
     const year = new Date().getFullYear();
+    const prefix = `BBA/${program.code}/${year}/`;
     const count = await prisma.lmsApplication.count({
       where: {
-        applicationNumber: { startsWith: `BBA/APP/${year}/` },
+        applicationNumber: { startsWith: prefix },
       },
     });
-    const applicationNumber = `BBA/APP/${year}/${String(count + 1).padStart(4, "0")}`;
+    const applicationNumber = `${prefix}${String(count + 1).padStart(4, "0")}`;
+
+    // Generate unique tracking code
+    let trackingCode = generateTrackingCode();
+    let attempts = 0;
+    while (attempts < 5) {
+      const existing = await prisma.lmsApplication.findUnique({
+        where: { trackingCode },
+      });
+      if (!existing) break;
+      trackingCode = generateTrackingCode();
+      attempts++;
+    }
 
     const application = await prisma.lmsApplication.create({
       data: {
@@ -112,10 +165,12 @@ export async function POST(request: Request) {
         programId,
         sessionId: activeSession.id,
         applicationNumber,
+        trackingCode,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim().toLowerCase(),
         phone: phone?.trim() || null,
+        whatsappNumber: whatsappNumber?.trim() || null,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
         gender: gender || null,
         address: address?.trim() || null,

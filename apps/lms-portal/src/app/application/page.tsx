@@ -19,7 +19,7 @@ import {
   SelectValue,
   Separator,
 } from "@repo/ui";
-import { BookOpen, ChevronLeft, ChevronRight, FileText, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
+import { BookOpen, CheckCircle, ChevronLeft, ChevronRight, Copy, FileText, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import { uploadDocument, deleteDocument } from "@/lib/supabase";
 
 interface ProgramOption {
@@ -53,6 +53,7 @@ interface FormData {
   lastName: string;
   email: string;
   phone: string;
+  whatsappNumber: string;
   dateOfBirth: string;
   gender: string;
   address: string;
@@ -77,6 +78,7 @@ export default function ApplicationPage() {
   const [programs, setPrograms] = useState<ProgramOption[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [submittedData, setSubmittedData] = useState<{ applicationNumber: string; trackingCode: string } | null>(null);
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDoc[]>([]);
   const [uploading, setUploading] = useState(false);
 
@@ -85,6 +87,7 @@ export default function ApplicationPage() {
     lastName: "",
     email: session?.user?.email || "",
     phone: "",
+    whatsappNumber: "",
     dateOfBirth: "",
     gender: "",
     address: "",
@@ -171,6 +174,10 @@ export default function ApplicationPage() {
         return;
       }
 
+      setSubmittedData({
+        applicationNumber: data.application?.applicationNumber || "",
+        trackingCode: data.application?.trackingCode || "",
+      });
       setSuccess(true);
     } catch {
       setError("An unexpected error occurred");
@@ -179,23 +186,58 @@ export default function ApplicationPage() {
     }
   }
 
+  const [copied, setCopied] = useState(false);
+
+  function copyTrackingLink() {
+    if (!submittedData?.trackingCode) return;
+    const link = `${window.location.origin}/application/track/${submittedData.trackingCode}`;
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  }
+
   if (success) {
+    const trackingLink = submittedData?.trackingCode
+      ? `${typeof window !== "undefined" ? window.location.origin : ""}/application/track/${submittedData.trackingCode}`
+      : "";
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
         <Card className="w-full max-w-md text-center">
           <CardHeader>
             <div className="flex justify-center mb-4">
               <div className="rounded-full bg-green-100 p-4">
-                <BookOpen className="h-8 w-8 text-green-600" />
+                <CheckCircle className="h-8 w-8 text-green-600" />
               </div>
             </div>
             <CardTitle className="text-2xl text-green-700">Application Submitted!</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-muted-foreground">
+            {submittedData?.applicationNumber && (
+              <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Application Number</p>
+                <p className="text-lg font-bold text-primary">{submittedData.applicationNumber}</p>
+              </div>
+            )}
+
+            <p className="text-sm text-muted-foreground">
               Your application has been received and is being reviewed. You will be
-              notified of the outcome via email.
+              notified via email and WhatsApp when a decision is made.
             </p>
+
+            {trackingLink && (
+              <div className="rounded-lg border bg-blue-50 p-4 space-y-2 text-left">
+                <p className="text-xs font-medium text-blue-800">Your Tracking Link (save this!):</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 truncate rounded bg-white px-2 py-1.5 text-xs border">{trackingLink}</code>
+                  <Button size="sm" variant="outline" onClick={copyTrackingLink} className="shrink-0">
+                    {copied ? <CheckCircle className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-blue-700">Share this link to check your application status anytime — no login required.</p>
+              </div>
+            )}
+
             <div className="flex flex-col gap-2">
               <Button onClick={() => router.push("/application/status")}>
                 Track Application Status
@@ -294,14 +336,27 @@ export default function ApplicationPage() {
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => updateField("phone", e.target.value)}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => updateField("phone", e.target.value)}
+                      placeholder="+234..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="whatsapp">WhatsApp Number</Label>
+                    <Input
+                      id="whatsapp"
+                      type="tel"
+                      value={formData.whatsappNumber}
+                      onChange={(e) => updateField("whatsappNumber", e.target.value)}
+                      placeholder="+234..."
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
