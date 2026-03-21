@@ -5,7 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
-import { BookOpen, Loader2 } from "lucide-react";
+import { BookOpen, Eye, EyeOff, Loader2 } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
@@ -13,6 +13,8 @@ function LoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -30,7 +32,7 @@ function LoginForm() {
       });
 
       if (result?.error) {
-        setError(result.error);
+        setError("Invalid email or password. Please try again.");
       } else if (result?.url) {
         router.push(result.url);
         router.refresh();
@@ -52,9 +54,9 @@ function LoginForm() {
             </div>
           </div>
           <div>
-            <CardTitle className="text-2xl">Student Portal</CardTitle>
+            <CardTitle className="text-2xl">Welcome Back</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Berean Bible Academy
+              Sign in to your Student Portal
             </p>
           </div>
         </CardHeader>
@@ -67,7 +69,7 @@ function LoginForm() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email Address</Label>
               <Input
                 id="email"
                 type="email"
@@ -75,19 +77,53 @@ function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-primary hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                id="remember"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
               />
+              <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">
+                Remember me
+              </Label>
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
@@ -96,17 +132,23 @@ function LoginForm() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm">
+          <div className="mt-6 space-y-3 text-center text-sm">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-white px-3 text-xs text-muted-foreground">
+                  New to Berean Bible Academy?
+                </span>
+              </div>
+            </div>
+            <Button variant="outline" className="w-full" asChild>
+              <Link href="/signup">Create Account &amp; Apply</Link>
+            </Button>
             <p className="text-muted-foreground">
-              New student?{" "}
-              <Link href="/signup" className="text-primary hover:underline font-medium">
-                Create an account
-              </Link>
-            </p>
-            <p className="text-muted-foreground mt-2">
-              Ready to apply?{" "}
-              <Link href="/application" className="text-primary hover:underline font-medium">
-                Apply now
+              <Link href="/application/status" className="text-primary hover:underline">
+                Track an existing application
               </Link>
             </p>
           </div>
