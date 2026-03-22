@@ -23,7 +23,7 @@ async function getDashboardData() {
   ] = await Promise.all([
     prisma.studentProfile.count(),
     prisma.lecturerProfile.count(),
-    prisma.program.count(),
+    prisma.program.count({ where: { isActive: true } }),
     prisma.lmsApplication.count({ where: { status: { in: ["submitted", "under_review"] } } }),
     prisma.lmsApplication.findMany({
       take: 5,

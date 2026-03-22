@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
-import { Edit, Loader2, X } from "lucide-react";
+import { Edit, Loader2, X, Download } from "lucide-react";
 
 interface Program {
   id: string;
@@ -23,12 +22,59 @@ interface Props {
   programs: Program[];
 }
 
+function exportToCSV(data: Record<string, unknown>[], filename: string, headers: string[], keys: string[]) {
+  const csvContent = [
+    headers.join(","),
+    ...data.map((row) =>
+      keys
+        .map((k) => {
+          const val = row[k] ?? "";
+          const str = String(val);
+          return str.includes(",") || str.includes('"') || str.includes("\n")
+            ? `"${str.replace(/"/g, '""')}"`
+            : str;
+        })
+        .join(",")
+    ),
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${filename}_${new Date().toISOString().split("T")[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function ProgramsClient({ programs }: Props) {
   const router = useRouter();
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState("");
   const [success, setSuccess] = useState("");
+
+  function handleExport() {
+    const rows = programs.map((p) => ({
+      name: p.name,
+      code: p.code,
+      degreeType: p.degreeType.replace("_", " "),
+      duration: `${p.durationSemesters} semesters`,
+      totalCredits: p.totalCredits,
+      tuition: (p.tuitionPerSemester / 100).toFixed(2),
+      department: p.department.name,
+      students: p._count.students,
+      courses: p._count.courses,
+      status: p.isActive ? "Active" : "Inactive",
+    }));
+
+    exportToCSV(
+      rows,
+      "programs",
+      ["Name", "Code", "Degree Type", "Duration", "Total Credits", "Tuition/Semester (N)", "Department", "Students", "Courses", "Status"],
+      ["name", "code", "degreeType", "duration", "totalCredits", "tuition", "department", "students", "courses", "status"]
+    );
+  }
 
   async function handleEdit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -74,6 +120,14 @@ export function ProgramsClient({ programs }: Props) {
       {success && (
         <div className="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">{success}</div>
       )}
+
+      {/* Export Button */}
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={handleExport}>
+          <Download className="mr-2 h-4 w-4" />
+          Export CSV
+        </Button>
+      </div>
 
       <div className="rounded-md border bg-white">
         <table className="w-full text-sm">

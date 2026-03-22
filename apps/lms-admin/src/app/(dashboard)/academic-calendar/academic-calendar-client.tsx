@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
-import { Plus, Loader2, Calendar, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Loader2, Calendar, ChevronDown, ChevronRight, Info } from "lucide-react";
 import { format } from "date-fns";
 
 interface CalendarEvent {
@@ -141,6 +141,13 @@ export function AcademicCalendarClient({ sessions }: Props) {
           </CardContent>
         </Card>
       )}
+
+      <div className="rounded-md border border-blue-200 bg-blue-50 p-3 flex items-start gap-2">
+        <Info className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+        <p className="text-sm text-blue-800">
+          Semesters are automatically deactivated when their end date has passed. To manually change the active semester, update the semester dates or contact the system administrator.
+        </p>
+      </div>
 
       <div className="space-y-4">
         {sessions.length === 0 ? (

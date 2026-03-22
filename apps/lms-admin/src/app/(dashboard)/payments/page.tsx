@@ -23,7 +23,6 @@ import {
   X,
   AlertCircle,
   Download,
-  Filter,
 } from "lucide-react";
 
 interface Payment {
@@ -87,6 +86,31 @@ function statusBadge(status: string, method?: string | null) {
   }
 }
 
+function exportToCSV(data: Record<string, unknown>[], filename: string, headers: string[], keys: string[]) {
+  const csvContent = [
+    headers.join(","),
+    ...data.map((row) =>
+      keys
+        .map((k) => {
+          const val = row[k] ?? "";
+          const str = String(val);
+          return str.includes(",") || str.includes('"') || str.includes("\n")
+            ? `"${str.replace(/"/g, '""')}"`
+            : str;
+        })
+        .join(",")
+    ),
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${filename}_${new Date().toISOString().split("T")[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function AdminPaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [stats, setStats] = useState<PaymentStats[]>([]);
@@ -109,6 +133,10 @@ export default function AdminPaymentsPage() {
     notes: "",
   });
   const [manualLoading, setManualLoading] = useState(false);
+
+  // Batch selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchApproveLoading, setBatchApproveLoading] = useState(false);
 
   useEffect(() => {
     fetchPayments();
@@ -186,6 +214,70 @@ export default function AdminPaymentsPage() {
     }
   }
 
+  // Batch approve
+  async function handleBatchApprove() {
+    setBatchApproveLoading(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    const ids = Array.from(selectedIds);
+    for (const id of ids) {
+      try {
+        const res = await fetch(`/api/payments/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "approve", adminNotes: "Batch approved by admin" }),
+        });
+        if (res.ok) successCount++;
+        else errorCount++;
+      } catch {
+        errorCount++;
+      }
+    }
+
+    setSelectedIds(new Set());
+    setMessage({ type: "success", text: `Batch approve: ${successCount} approved, ${errorCount} failed` });
+    fetchPayments();
+    setBatchApproveLoading(false);
+  }
+
+  // Export CSV
+  function handleExport() {
+    const dataToExport = selectedIds.size > 0
+      ? filteredPayments.filter((p) => selectedIds.has(p.id))
+      : filteredPayments;
+
+    const rows = dataToExport.map((p) => ({
+      student: p.student.user.fullName || "N/A",
+      studentId: p.student.studentId,
+      email: p.student.user.email,
+      program: p.student.program.code,
+      semester: `${p.tuitionFee.semester.session.name} - ${p.tuitionFee.semester.name}`,
+      amount: (p.amount / 100).toFixed(2),
+      date: p.paidAt ? new Date(p.paidAt).toLocaleDateString() : new Date(p.createdAt).toLocaleDateString(),
+      reference: p.paystackReference || p.bankReference || "-",
+      status: p.status,
+      method: p.paymentMethod || "paystack",
+    }));
+
+    exportToCSV(
+      rows,
+      "payments",
+      ["Student", "Student ID", "Email", "Program", "Semester", "Amount (N)", "Date", "Reference", "Status", "Method"],
+      ["student", "studentId", "email", "program", "semester", "amount", "date", "reference", "status", "method"]
+    );
+  }
+
+  // Selection helpers
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   const totalCollected = stats.find((s) => s.status === "successful")?._sum.amount || 0;
   const totalPending = stats.find((s) => s.status === "pending")?._sum.amount || 0;
   const paidCount = stats.find((s) => s.status === "successful")?._count || 0;
@@ -201,6 +293,13 @@ export default function AdminPaymentsPage() {
           p.bankReference?.toLowerCase().includes(search.toLowerCase())
       )
     : payments;
+
+  const allSelected = filteredPayments.length > 0 && filteredPayments.every((p) => selectedIds.has(p.id));
+
+  // Pending bank transfers that can be batch approved
+  const pendingBankTransfers = filteredPayments.filter(
+    (p) => selectedIds.has(p.id) && p.paymentMethod === "bank_transfer" && p.status === "pending"
+  );
 
   return (
     <div className="space-y-6">
@@ -337,6 +436,47 @@ export default function AdminPaymentsPage() {
         </Card>
       )}
 
+      {/* Action Bar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="outline" size="sm" onClick={handleExport}>
+          <Download className="mr-2 h-4 w-4" />
+          Export CSV
+        </Button>
+        {selectedIds.size > 0 && (
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-sm text-muted-foreground font-medium">{selectedIds.size} selected</span>
+            {pendingBankTransfers.length > 0 && (
+              <Button
+                size="sm"
+                className="bg-green-600 hover:bg-green-700"
+                onClick={handleBatchApprove}
+                disabled={batchApproveLoading}
+              >
+                {batchApproveLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Approve {pendingBankTransfers.length} Receipt(s)
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={() => {
+              const data = filteredPayments.filter(p => selectedIds.has(p.id));
+              const rows = data.map((p) => ({
+                student: p.student.user.fullName || "N/A", studentId: p.student.studentId,
+                email: p.student.user.email, program: p.student.program.code,
+                semester: `${p.tuitionFee.semester.session.name} - ${p.tuitionFee.semester.name}`,
+                amount: (p.amount / 100).toFixed(2),
+                date: p.paidAt ? new Date(p.paidAt).toLocaleDateString() : new Date(p.createdAt).toLocaleDateString(),
+                reference: p.paystackReference || p.bankReference || "-",
+                status: p.status, method: p.paymentMethod || "paystack",
+              }));
+              exportToCSV(rows, "payments_selected", ["Student", "Student ID", "Email", "Program", "Semester", "Amount (N)", "Date", "Reference", "Status", "Method"], ["student", "studentId", "email", "program", "semester", "amount", "date", "reference", "status", "method"]);
+            }}>
+              <Download className="mr-2 h-4 w-4" />
+              Export Selected
+            </Button>
+          </div>
+        )}
+      </div>
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
@@ -381,6 +521,20 @@ export default function AdminPaymentsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
+                  <th className="h-10 px-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={() => {
+                        if (allSelected) {
+                          setSelectedIds(new Set());
+                        } else {
+                          setSelectedIds(new Set(filteredPayments.map((p) => p.id)));
+                        }
+                      }}
+                      className="rounded border-gray-300"
+                    />
+                  </th>
                   <th className="h-10 px-4 text-left font-medium text-muted-foreground">Student</th>
                   <th className="h-10 px-4 text-left font-medium text-muted-foreground">Program</th>
                   <th className="h-10 px-4 text-left font-medium text-muted-foreground">Semester</th>
@@ -394,13 +548,21 @@ export default function AdminPaymentsPage() {
               <tbody>
                 {filteredPayments.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="h-24 text-center text-muted-foreground">
+                    <td colSpan={9} className="h-24 text-center text-muted-foreground">
                       No payments found.
                     </td>
                   </tr>
                 ) : (
                   filteredPayments.map((payment) => (
-                    <tr key={payment.id} className="border-b hover:bg-muted/50">
+                    <tr key={payment.id} className={`border-b hover:bg-muted/50 ${selectedIds.has(payment.id) ? "bg-primary/5" : ""}`}>
+                      <td className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(payment.id)}
+                          onChange={() => toggleSelect(payment.id)}
+                          className="rounded border-gray-300"
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <div>
                           <div className="font-medium">{payment.student.user.fullName || "N/A"}</div>

@@ -28,7 +28,12 @@ function LoginForm() {
       });
 
       if (result?.error) {
-        setError(result.error);
+        // NextAuth returns "CredentialsSignin" for failed login - show a user-friendly message
+        if (result.error === "CredentialsSignin") {
+          setError("Invalid email or password. Please try again.");
+        } else {
+          setError(result.error);
+        }
       } else if (result?.url) {
         window.location.href = result.url;
       }
@@ -63,7 +68,7 @@ function LoginForm() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@bba.org.ng"
+                placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required

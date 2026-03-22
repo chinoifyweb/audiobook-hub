@@ -23,7 +23,7 @@ export default async function ReportsPage() {
     prisma.studentProfile.count({ where: { status: "active" } }),
     prisma.studentProfile.count({ where: { status: "graduated" } }),
     prisma.lecturerProfile.count(),
-    prisma.program.count(),
+    prisma.program.count({ where: { isActive: true } }),
     prisma.course.count(),
     prisma.tuitionPayment.aggregate({
       where: { status: "successful" },
