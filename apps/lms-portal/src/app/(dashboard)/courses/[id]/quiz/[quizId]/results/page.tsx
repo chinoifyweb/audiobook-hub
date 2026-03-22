@@ -10,11 +10,9 @@ import {
   ArrowLeft,
   CheckCircle2,
   XCircle,
-  Trophy,
   AlertTriangle,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
+import { QuizNav } from "@/components/lms/quiz-nav";
 
 interface QuizResult {
   id: string;
@@ -64,7 +62,8 @@ export default function QuizResultsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [data, setData] = useState<ResultsData | null>(null);
-  const [expandedAttempt, setExpandedAttempt] = useState<string | null>(null);
+  const [selectedAttemptIndex, setSelectedAttemptIndex] = useState(0);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
   useEffect(() => {
     async function fetchResults() {
@@ -79,9 +78,6 @@ export default function QuizResultsPage() {
         }
         const results: ResultsData = await res.json();
         setData(results);
-        if (results.results.length > 0) {
-          setExpandedAttempt(results.results[0].id);
-        }
       } catch {
         setError("Failed to load results");
       } finally {
@@ -121,13 +117,44 @@ export default function QuizResultsPage() {
     );
   }
 
-  const bestScore = data.bestAttempt.totalScore;
-  const maxScore = data.bestAttempt.maxScore;
-  const percentage =
-    bestScore !== null ? Math.round((bestScore / maxScore) * 100) : null;
+  const selectedResult = data.results[selectedAttemptIndex];
+  if (!selectedResult) {
+    return (
+      <div className="max-w-md mx-auto mt-20 text-center">
+        <p className="text-gray-500">No attempt results found.</p>
+      </div>
+    );
+  }
+
+  // Compute duration
+  const startedAt = new Date(selectedResult.startedAt);
+  const submittedAt = selectedResult.submittedAt
+    ? new Date(selectedResult.submittedAt)
+    : null;
+  let durationText = "";
+  if (submittedAt) {
+    const diffMs = submittedAt.getTime() - startedAt.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffSecs = Math.floor((diffMs % 60000) / 1000);
+    durationText = `${diffMins} mins ${diffSecs} secs`;
+  }
+
+  const correctIndices = new Set<number>();
+  const incorrectIndices = new Set<number>();
+  const answeredIndices = new Set<number>();
+
+  selectedResult.answers.forEach((a, i) => {
+    if (a.isCorrect === true) correctIndices.add(i);
+    if (a.isCorrect === false) incorrectIndices.add(i);
+    if (a.selectedOption !== null || (a.answerText && a.answerText.trim())) {
+      answeredIndices.add(i);
+    }
+  });
+
+  const currentAnswer = selectedResult.answers[currentQuestionIndex];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-8">
+    <div className="max-w-6xl mx-auto space-y-6 pb-8">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-gray-500">
         <Link href="/courses" className="hover:text-blue-600">
@@ -148,318 +175,392 @@ export default function QuizResultsPage() {
         <span className="text-gray-900 font-medium">Results</span>
       </div>
 
-      {/* Score Summary */}
-      <Card className="border-0 shadow-sm overflow-hidden">
-        <div
-          className={`p-8 text-center text-white ${
-            data.bestAttempt.isPassed
-              ? "bg-gradient-to-r from-green-600 to-emerald-600"
-              : data.bestAttempt.isPassed === false
-                ? "bg-gradient-to-r from-red-500 to-red-600"
-                : "bg-gradient-to-r from-blue-600 to-blue-700"
-          }`}
-        >
-          <div className="inline-flex rounded-full bg-white/20 p-4 mb-4">
-            {data.bestAttempt.isPassed ? (
-              <Trophy className="h-10 w-10" />
-            ) : data.bestAttempt.isPassed === false ? (
-              <XCircle className="h-10 w-10" />
-            ) : (
-              <AlertTriangle className="h-10 w-10" />
-            )}
-          </div>
-          <h2 className="text-2xl font-bold mb-1">
-            {data.bestAttempt.isPassed
-              ? "Congratulations!"
-              : data.bestAttempt.isPassed === false
-                ? "Keep Trying!"
-                : "Results Pending"}
-          </h2>
-          <p className="text-white/80 text-sm mb-4">
-            {data.quiz.course.code} - {data.quiz.title}
-          </p>
-
-          {bestScore !== null && (
-            <div className="flex items-center justify-center gap-8">
-              <div>
-                <p className="text-4xl font-bold">{bestScore}</p>
-                <p className="text-sm text-white/70">out of {maxScore}</p>
-              </div>
-              <Separator orientation="vertical" className="h-12 bg-white/20" />
-              <div>
-                <p className="text-4xl font-bold">{percentage}%</p>
-                <p className="text-sm text-white/70">Best Score</p>
-              </div>
-              <Separator orientation="vertical" className="h-12 bg-white/20" />
-              <div>
-                <p className="text-4xl font-bold">{data.quiz.passMark}</p>
-                <p className="text-sm text-white/70">Pass Mark</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </Card>
-
-      {/* Attempt Details */}
-      {data.results.map((result, index) => (
-        <Card key={result.id} className="border-0 shadow-sm">
-          <button
-            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            onClick={() =>
-              setExpandedAttempt(
-                expandedAttempt === result.id ? null : result.id
-              )
-            }
-          >
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-600">
-                {index + 1}
-              </div>
-              <div className="text-left">
-                <p className="font-medium text-sm">
-                  Attempt {index + 1}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {result.submittedAt
-                    ? format(new Date(result.submittedAt), "MMM d, yyyy h:mm a")
-                    : "In progress"}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
+      {/* Attempt selector if multiple attempts */}
+      {data.results.length > 1 && (
+        <div className="flex items-center gap-2">
+          {data.results.map((result, i) => (
+            <button
+              key={result.id}
+              onClick={() => {
+                setSelectedAttemptIndex(i);
+                setCurrentQuestionIndex(0);
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                i === selectedAttemptIndex
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              Attempt {i + 1}
               {result.totalScore !== null && (
-                <span className="text-sm font-bold">
-                  {result.totalScore}/{result.maxScore}
-                  <span className="text-gray-400 font-normal ml-1">
-                    ({result.percentage}%)
-                  </span>
+                <span className="ml-1.5 text-xs opacity-75">
+                  ({result.totalScore}/{result.maxScore})
                 </span>
               )}
-              {result.isPassed !== null && (
-                <Badge
-                  variant={result.isPassed ? "default" : "destructive"}
-                  className="text-xs"
-                >
-                  {result.isPassed ? "Passed" : "Failed"}
-                </Badge>
-              )}
-              {expandedAttempt === result.id ? (
-                <ChevronUp className="h-4 w-4 text-gray-400" />
-              ) : (
-                <ChevronDown className="h-4 w-4 text-gray-400" />
-              )}
-            </div>
-          </button>
+            </button>
+          ))}
+        </div>
+      )}
 
-          {/* Expanded answers review */}
-          {expandedAttempt === result.id && result.answers.length > 0 && (
-            <div className="border-t">
-              <div className="divide-y">
-                {result.answers.map((answer, qIndex) => (
-                  <div key={answer.questionId} className="px-6 py-4">
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                          answer.isCorrect === true
-                            ? "bg-green-100 text-green-700"
-                            : answer.isCorrect === false
-                              ? "bg-red-100 text-red-700"
-                              : "bg-gray-100 text-gray-500"
-                        }`}
-                      >
-                        {qIndex + 1}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium mb-2">
-                          {answer.questionText}
-                        </p>
+      {/* Finish review button at top */}
+      <div className="flex justify-end">
+        <Link href={`/courses/${params.id}/quiz/${params.quizId}`}>
+          <Button variant="outline" size="sm" className="border-gray-300">
+            Finish review
+          </Button>
+        </Link>
+      </div>
 
-                        {/* Show answer */}
-                        {answer.questionType === "mcq" && answer.options && (
-                          <div className="space-y-1.5">
-                            {answer.options.map((opt, idx) => {
-                              const isSelected =
-                                answer.selectedOption === idx;
-                              const isCorrectOption = opt.isCorrect;
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Main content */}
+        <div className="flex-1 space-y-4">
+          {/* Summary Table */}
+          <Card className="border shadow-sm">
+            <CardContent className="p-0">
+              <table className="w-full text-sm">
+                <tbody className="divide-y">
+                  <tr>
+                    <td className="px-5 py-3 text-gray-500 font-medium bg-gray-50 w-40">
+                      Status
+                    </td>
+                    <td className="px-5 py-3 text-gray-900">
+                      Finished
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-5 py-3 text-gray-500 font-medium bg-gray-50">
+                      Started
+                    </td>
+                    <td className="px-5 py-3 text-gray-900">
+                      {format(startedAt, "EEEE, d MMMM yyyy, h:mm:ss a")}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-5 py-3 text-gray-500 font-medium bg-gray-50">
+                      Completed
+                    </td>
+                    <td className="px-5 py-3 text-gray-900">
+                      {submittedAt
+                        ? format(submittedAt, "EEEE, d MMMM yyyy, h:mm:ss a")
+                        : "In progress"}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-5 py-3 text-gray-500 font-medium bg-gray-50">
+                      Duration
+                    </td>
+                    <td className="px-5 py-3 text-gray-900">
+                      {durationText || "N/A"}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-5 py-3 text-gray-500 font-medium bg-gray-50">
+                      Grade
+                    </td>
+                    <td className="px-5 py-3">
+                      {selectedResult.totalScore !== null ? (
+                        <span className="font-bold text-gray-900">
+                          {selectedResult.totalScore} out of{" "}
+                          {selectedResult.maxScore}
+                          {selectedResult.percentage !== null && (
+                            <span className="ml-1">
+                              ({selectedResult.percentage}%)
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-gray-500">Pending</span>
+                      )}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
 
-                              return (
-                                <div
-                                  key={idx}
-                                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
-                                    isCorrectOption
-                                      ? "bg-green-50 border border-green-200"
-                                      : isSelected
-                                        ? "bg-red-50 border border-red-200"
-                                        : "bg-gray-50"
-                                  }`}
-                                >
-                                  {isCorrectOption ? (
-                                    <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-                                  ) : isSelected ? (
-                                    <XCircle className="h-4 w-4 text-red-500 shrink-0" />
-                                  ) : (
-                                    <div className="h-4 w-4 rounded-full border border-gray-300 shrink-0" />
-                                  )}
-                                  <span
-                                    className={
-                                      isCorrectOption
-                                        ? "text-green-700 font-medium"
-                                        : isSelected
-                                          ? "text-red-700"
-                                          : "text-gray-600"
-                                    }
-                                  >
-                                    {opt.text}
-                                  </span>
-                                  {isSelected && (
-                                    <Badge
-                                      variant="outline"
-                                      className="text-[10px] ml-auto"
-                                    >
-                                      Your answer
-                                    </Badge>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
+          {/* Questions Review */}
+          {selectedResult.answers.map((answer, qIndex) => {
+            const isCorrect = answer.isCorrect === true;
+            const isIncorrect = answer.isCorrect === false;
+            const statusText = isCorrect
+              ? "Correct"
+              : isIncorrect
+                ? "Incorrect"
+                : "Not graded";
+            const statusColor = isCorrect
+              ? "text-green-600"
+              : isIncorrect
+                ? "text-red-600"
+                : "text-gray-500";
 
-                        {answer.questionType === "true_false" && (
-                          <div className="space-y-1.5">
-                            {["True", "False"].map((opt, idx) => {
-                              const isSelected =
-                                answer.selectedOption === idx;
-                              const correctVal =
-                                answer.correctAnswer?.toLowerCase();
-                              const isCorrectOption =
-                                (idx === 0 && correctVal === "true") ||
-                                (idx === 1 && correctVal === "false");
+            return (
+              <Card
+                key={answer.questionId}
+                className="border shadow-sm overflow-hidden"
+                id={`question-${qIndex}`}
+              >
+                <div className="flex flex-col md:flex-row">
+                  {/* Left section - metadata */}
+                  <div className="md:w-56 shrink-0 bg-gray-50 border-b md:border-b-0 md:border-r p-4 space-y-2">
+                    <h3 className="text-sm font-bold text-gray-900">
+                      Question {qIndex + 1}
+                    </h3>
+                    <p className={`text-xs font-medium ${statusColor}`}>
+                      {statusText}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {answer.pointsAwarded !== null
+                        ? `${answer.pointsAwarded} / ${answer.maxPoints} marks`
+                        : `Marked out of ${answer.maxPoints}`}
+                    </p>
+                  </div>
 
-                              return (
-                                <div
-                                  key={idx}
-                                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
-                                    isCorrectOption
-                                      ? "bg-green-50 border border-green-200"
-                                      : isSelected
-                                        ? "bg-red-50 border border-red-200"
-                                        : "bg-gray-50"
-                                  }`}
-                                >
-                                  {isCorrectOption ? (
-                                    <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-                                  ) : isSelected ? (
-                                    <XCircle className="h-4 w-4 text-red-500 shrink-0" />
-                                  ) : (
-                                    <div className="h-4 w-4 shrink-0" />
-                                  )}
-                                  <span>{opt}</span>
-                                  {isSelected && (
-                                    <Badge
-                                      variant="outline"
-                                      className="text-[10px] ml-auto"
-                                    >
-                                      Your answer
-                                    </Badge>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
+                  {/* Right section - question + answer review */}
+                  <div className="flex-1 p-5">
+                    <p className="text-sm leading-relaxed text-gray-900 mb-4">
+                      {answer.questionText}
+                    </p>
 
-                        {(answer.questionType === "short_answer" ||
-                          answer.questionType === "fill_in_the_blank") && (
-                          <div className="space-y-2">
+                    {/* MCQ answer review */}
+                    {answer.questionType === "mcq" && answer.options && (
+                      <div className="space-y-2">
+                        {answer.options.map((opt, idx) => {
+                          const isSelected = answer.selectedOption === idx;
+                          const isCorrectOption = opt.isCorrect;
+
+                          return (
                             <div
-                              className={`rounded-lg px-3 py-2 text-sm ${
-                                answer.isCorrect
-                                  ? "bg-green-50 border border-green-200 text-green-700"
-                                  : "bg-red-50 border border-red-200 text-red-700"
+                              key={idx}
+                              className={`flex items-start gap-3 rounded-lg border p-3 text-sm ${
+                                isCorrectOption && isSelected
+                                  ? "border-green-300 bg-green-50"
+                                  : isCorrectOption
+                                    ? "border-green-200 bg-green-50/50"
+                                    : isSelected
+                                      ? "border-red-300 bg-red-50"
+                                      : "border-gray-200"
                               }`}
                             >
-                              <span className="text-xs text-gray-500">
-                                Your answer:
-                              </span>{" "}
-                              <span className="font-medium">
-                                {answer.answerText || "(blank)"}
-                              </span>
-                            </div>
-                            {answer.correctAnswer && !answer.isCorrect && (
-                              <div className="rounded-lg px-3 py-2 text-sm bg-green-50 border border-green-200 text-green-700">
-                                <span className="text-xs text-gray-500">
-                                  Correct answer:
-                                </span>{" "}
-                                <span className="font-medium">
-                                  {answer.correctAnswer}
-                                </span>
+                              {/* Result indicator */}
+                              <div className="mt-0.5 shrink-0">
+                                {isCorrectOption && isSelected ? (
+                                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                ) : isCorrectOption ? (
+                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                ) : isSelected ? (
+                                  <XCircle className="h-4 w-4 text-red-500" />
+                                ) : (
+                                  <div className="h-4 w-4 rounded-full border border-gray-300" />
+                                )}
                               </div>
-                            )}
-                          </div>
-                        )}
-
-                        {answer.questionType === "essay" && (
-                          <div className="rounded-lg px-3 py-2 text-sm bg-gray-50 border">
-                            <span className="text-xs text-gray-500 block mb-1">
-                              Your answer:
-                            </span>
-                            <p className="text-gray-700 whitespace-pre-wrap">
-                              {answer.answerText || "(no answer)"}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Points */}
-                        <div className="flex items-center justify-between mt-2">
-                          <div className="flex items-center gap-1.5">
-                            {answer.isCorrect === true && (
-                              <CheckCircle2 className="h-4 w-4 text-green-600" />
-                            )}
-                            {answer.isCorrect === false && (
-                              <XCircle className="h-4 w-4 text-red-500" />
-                            )}
-                            <span className="text-xs text-gray-500">
-                              {answer.pointsAwarded !== null
-                                ? `${answer.pointsAwarded}/${answer.maxPoints} marks`
-                                : `${answer.maxPoints} marks (pending)`}
-                            </span>
-                          </div>
-                        </div>
+                              <span
+                                className={
+                                  isCorrectOption
+                                    ? "text-green-700 font-medium"
+                                    : isSelected
+                                      ? "text-red-700"
+                                      : "text-gray-600"
+                                }
+                              >
+                                <span className="font-medium">
+                                  {String.fromCharCode(97 + idx)}.
+                                </span>{" "}
+                                {opt.text}
+                              </span>
+                              {isSelected && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] ml-auto shrink-0"
+                                >
+                                  Your answer
+                                </Badge>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                    </div>
+                    )}
+
+                    {/* True/False answer review */}
+                    {answer.questionType === "true_false" && (
+                      <div className="space-y-2">
+                        {["True", "False"].map((opt, idx) => {
+                          const isSelected = answer.selectedOption === idx;
+                          const correctVal =
+                            answer.correctAnswer?.toLowerCase();
+                          const isCorrectOption =
+                            (idx === 0 && correctVal === "true") ||
+                            (idx === 1 && correctVal === "false");
+
+                          return (
+                            <div
+                              key={idx}
+                              className={`flex items-start gap-3 rounded-lg border p-3 text-sm ${
+                                isCorrectOption && isSelected
+                                  ? "border-green-300 bg-green-50"
+                                  : isCorrectOption
+                                    ? "border-green-200 bg-green-50/50"
+                                    : isSelected
+                                      ? "border-red-300 bg-red-50"
+                                      : "border-gray-200"
+                              }`}
+                            >
+                              <div className="mt-0.5 shrink-0">
+                                {isCorrectOption && isSelected ? (
+                                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                ) : isCorrectOption ? (
+                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                ) : isSelected ? (
+                                  <XCircle className="h-4 w-4 text-red-500" />
+                                ) : (
+                                  <div className="h-4 w-4 shrink-0" />
+                                )}
+                              </div>
+                              <span
+                                className={
+                                  isCorrectOption
+                                    ? "text-green-700 font-medium"
+                                    : isSelected
+                                      ? "text-red-700"
+                                      : "text-gray-600"
+                                }
+                              >
+                                <span className="font-medium">
+                                  {String.fromCharCode(97 + idx)}.
+                                </span>{" "}
+                                {opt}
+                              </span>
+                              {isSelected && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] ml-auto shrink-0"
+                                >
+                                  Your answer
+                                </Badge>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Short answer / fill in blank review */}
+                    {(answer.questionType === "short_answer" ||
+                      answer.questionType === "fill_in_the_blank") && (
+                      <div className="space-y-2">
+                        <div
+                          className={`rounded-lg px-3 py-2 text-sm ${
+                            answer.isCorrect
+                              ? "bg-green-50 border border-green-200 text-green-700"
+                              : "bg-red-50 border border-red-200 text-red-700"
+                          }`}
+                        >
+                          <span className="text-xs text-gray-500">
+                            Your answer:
+                          </span>{" "}
+                          <span className="font-medium">
+                            {answer.answerText || "(blank)"}
+                          </span>
+                        </div>
+                        {answer.correctAnswer && !answer.isCorrect && (
+                          <div className="rounded-lg px-3 py-2 text-sm bg-green-50 border border-green-200 text-green-700">
+                            <span className="text-xs text-gray-500">
+                              Correct answer:
+                            </span>{" "}
+                            <span className="font-medium">
+                              {answer.correctAnswer}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Essay review */}
+                    {answer.questionType === "essay" && (
+                      <div className="rounded-lg px-3 py-2 text-sm bg-gray-50 border">
+                        <span className="text-xs text-gray-500 block mb-1">
+                          Your answer:
+                        </span>
+                        <p className="text-gray-700 whitespace-pre-wrap">
+                          {answer.answerText || "(no answer)"}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                </div>
+              </Card>
+            );
+          })}
 
-          {expandedAttempt === result.id && result.answers.length === 0 && (
-            <div className="border-t px-6 py-8 text-center">
-              <p className="text-sm text-gray-500">
-                Detailed results are not available for this assessment.
-              </p>
-            </div>
-          )}
-        </Card>
-      ))}
+          {/* Finish review button at bottom */}
+          <div className="flex items-center gap-4 pt-2">
+            <Link href={`/courses/${params.id}/quiz/${params.quizId}`}>
+              <Button variant="outline" className="border-gray-300">
+                Finish review
+              </Button>
+            </Link>
+          </div>
+        </div>
 
-      {/* Back button */}
-      <div className="flex items-center gap-4">
-        <Link
-          href={`/courses/${params.id}/quiz/${params.quizId}`}
-          className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-blue-600"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to quiz
-        </Link>
-        <Link
-          href={`/courses/${params.id}`}
-          className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-blue-600"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to course
-        </Link>
+        {/* Right Sidebar - Navigation */}
+        <div className="lg:w-72 shrink-0">
+          <div className="sticky top-20 space-y-4">
+            <Card className="border shadow-sm">
+              <CardContent className="py-4">
+                <QuizNav
+                  totalQuestions={selectedResult.answers.length}
+                  currentIndex={currentQuestionIndex}
+                  answeredIndices={answeredIndices}
+                  flaggedIndices={new Set()}
+                  onNavigate={(index) => {
+                    setCurrentQuestionIndex(index);
+                    // Scroll to question
+                    const el = document.getElementById(`question-${index}`);
+                    if (el) {
+                      el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }
+                  }}
+                  correctIndices={correctIndices}
+                  incorrectIndices={incorrectIndices}
+                  reviewMode
+                />
+              </CardContent>
+            </Card>
+
+            {/* Score card */}
+            {selectedResult.totalScore !== null && (
+              <Card className="border shadow-sm">
+                <CardContent className="py-4 text-center">
+                  <p className="text-xs text-gray-500 mb-1">Your Score</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {selectedResult.totalScore}/{selectedResult.maxScore}
+                  </p>
+                  {selectedResult.percentage !== null && (
+                    <p className={`text-sm font-semibold mt-1 ${
+                      selectedResult.isPassed ? "text-green-600" : "text-red-600"
+                    }`}>
+                      {selectedResult.percentage}%
+                      {selectedResult.isPassed !== null && (
+                        <span className="ml-1">
+                          - {selectedResult.isPassed ? "Passed" : "Failed"}
+                        </span>
+                      )}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            <Link
+              href={`/courses/${params.id}/quiz/${params.quizId}`}
+              className="block"
+            >
+              <Button variant="outline" size="sm" className="w-full border-gray-300">
+                Finish review
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ import {
   MaterialViewer,
   type CourseMaterial,
   type StudySession,
+  type CourseAssessment,
 } from "@/components/lms";
 import { Badge, Card, CardContent, Button, Progress, Separator } from "@repo/ui";
 import {
@@ -200,6 +201,52 @@ export default function CourseDetailPage() {
     : -1;
   const hasNext = currentIndex < allMaterials.length - 1;
 
+  // Build assessment list for sidebar
+  const sidebarAssessments: CourseAssessment[] = [
+    ...data.testExams.map((t) => {
+      const bestAttempt = t.attempts.reduce(
+        (best: typeof t.attempts[0] | null, current) => {
+          if (!best) return current;
+          if (
+            current.totalScore !== null &&
+            (best.totalScore === null || current.totalScore > best.totalScore)
+          ) {
+            return current;
+          }
+          return best;
+        },
+        t.attempts[0] ?? null
+      );
+      const isCompleted = t.attempts.some(
+        (a) => a.status === "submitted" || a.status === "graded"
+      );
+      return {
+        id: t.id,
+        title: t.title,
+        type: (t.type === "test" ? "test" : "exam") as "test" | "exam",
+        completed: isCompleted,
+        score: bestAttempt?.totalScore ?? null,
+        maxScore: t.totalMarks,
+      };
+    }),
+    ...data.assignments.map((a) => ({
+      id: a.id,
+      title: a.title,
+      type: "assignment" as const,
+      completed: a.submissions.length > 0,
+      score: a.submissions[0]?.score ?? null,
+      maxScore: a.maxScore,
+    })),
+  ];
+
+  const handleSelectAssessment = (assessment: CourseAssessment) => {
+    if (assessment.type === "test" || assessment.type === "exam") {
+      router.push(`/courses/${params.id}/quiz/${assessment.id}`);
+    } else {
+      router.push(`/assignments/${assessment.id}`);
+    }
+  };
+
   return (
     <div className="flex h-[calc(100vh-4rem)] -m-4 sm:-m-6">
       {/* Course Sidebar */}
@@ -212,6 +259,8 @@ export default function CourseDetailPage() {
         progress={data.progress.percentage}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        assessments={sidebarAssessments}
+        onSelectAssessment={handleSelectAssessment}
       />
 
       {/* Main Content Area */}

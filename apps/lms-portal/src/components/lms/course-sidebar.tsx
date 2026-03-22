@@ -9,13 +9,13 @@ import {
   FileText,
   BookOpen,
   HelpCircle,
-  ListChecks,
-  Bookmark,
   Link2,
   CheckCircle2,
   Circle,
   PanelLeftClose,
   PanelLeftOpen,
+  Gamepad2,
+  Brain,
 } from "lucide-react";
 
 export interface CourseMaterial {
@@ -34,6 +34,15 @@ export interface StudySession {
   materials: CourseMaterial[];
 }
 
+export interface CourseAssessment {
+  id: string;
+  title: string;
+  type: "test" | "exam" | "assignment";
+  completed: boolean;
+  score?: number | null;
+  maxScore?: number;
+}
+
 interface CourseSidebarProps {
   sessions: StudySession[];
   activeMaterialId: string | null;
@@ -43,9 +52,24 @@ interface CourseSidebarProps {
   progress: number;
   collapsed: boolean;
   onToggleCollapse: () => void;
+  assessments?: CourseAssessment[];
+  onSelectAssessment?: (assessment: CourseAssessment) => void;
 }
 
-function getMaterialIcon(type: string) {
+function getMaterialIcon(type: string, title: string) {
+  const lowerTitle = title.toLowerCase();
+
+  // Check for interactive learning types
+  if (lowerTitle.includes("interactive learning") || lowerTitle.includes("matching")) {
+    return Gamepad2;
+  }
+  if (lowerTitle.includes("scenario") || lowerTitle.includes("interactive")) {
+    return Brain;
+  }
+  if (lowerTitle.includes("pop quiz")) {
+    return HelpCircle;
+  }
+
   switch (type) {
     case "youtube_video":
       return Video;
@@ -61,10 +85,29 @@ function getMaterialIcon(type: string) {
   }
 }
 
-function getMaterialLabel(type: string, index: number): string {
+function getMaterialSubLabel(type: string, title: string): string | null {
+  const lowerTitle = title.toLowerCase();
+
+  if (lowerTitle.includes("introductory video") || lowerTitle.includes("intro video")) {
+    return "Introductory Video";
+  }
+  if (type === "youtube_video") {
+    return "Video Lecture";
+  }
+  if (lowerTitle.includes("reading")) {
+    return "Reading";
+  }
+  if (lowerTitle.includes("interactive learning: matchi")) {
+    return "Interactive Learning: Matching";
+  }
+  if (lowerTitle.includes("interactive learning: scenari")) {
+    return "Interactive Learning: Scenario";
+  }
+  if (lowerTitle.includes("pop quiz")) {
+    return "Pop Quiz";
+  }
+
   switch (type) {
-    case "youtube_video":
-      return index === 0 ? "Introductory Video" : "Video Lecture";
     case "pdf":
       return "Reading Material";
     case "ebook":
@@ -74,8 +117,14 @@ function getMaterialLabel(type: string, index: number): string {
     case "link":
       return "External Resource";
     default:
-      return "Material";
+      return null;
   }
+}
+
+/** Truncate a string at a max length, adding ellipsis */
+function truncate(str: string, maxLen: number): string {
+  if (str.length <= maxLen) return str;
+  return str.slice(0, maxLen) + "...";
 }
 
 export function CourseSidebar({
@@ -87,18 +136,20 @@ export function CourseSidebar({
   progress,
   collapsed,
   onToggleCollapse,
+  assessments,
+  onSelectAssessment,
 }: CourseSidebarProps) {
-  const [expandedSessions, setExpandedSessions] = useState<Set<number>>(
-    new Set([1])
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    new Set(["session-1", "assessments"])
   );
 
-  const toggleSession = (sessionNumber: number) => {
-    setExpandedSessions((prev) => {
+  const toggleSection = (sectionKey: string) => {
+    setExpandedSections((prev) => {
       const next = new Set(prev);
-      if (next.has(sessionNumber)) {
-        next.delete(sessionNumber);
+      if (next.has(sectionKey)) {
+        next.delete(sectionKey);
       } else {
-        next.add(sessionNumber);
+        next.add(sectionKey);
       }
       return next;
     });
@@ -150,21 +201,102 @@ export function CourseSidebar({
         </div>
       </div>
 
-      {/* Sessions list */}
+      {/* Content list */}
       <div className="flex-1 overflow-y-auto">
+        {/* Continuous Assessment section */}
+        {assessments && assessments.length > 0 && (
+          <div>
+            <button
+              onClick={() => toggleSection("assessments")}
+              className={cn(
+                "w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/5 transition-colors border-b border-white/5",
+                expandedSections.has("assessments") && "bg-white/5"
+              )}
+            >
+              {expandedSections.has("assessments") ? (
+                <ChevronDown className="h-4 w-4 text-white/40 shrink-0" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-white/40 shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Continuous Assessment</p>
+              </div>
+            </button>
+
+            {expandedSections.has("assessments") && (
+              <div className="pb-1">
+                {assessments.map((assessment) => (
+                  <button
+                    key={assessment.id}
+                    onClick={() => onSelectAssessment?.(assessment)}
+                    className="w-full flex items-center gap-3 px-4 pl-10 py-2.5 text-left transition-colors group hover:bg-white/5 border-l-2 border-transparent"
+                  >
+                    {assessment.completed ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
+                    ) : (
+                      <Circle className="h-4 w-4 text-white/30 shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-white/70 group-hover:text-white/90 truncate">
+                        {truncate(assessment.title, 35)}
+                      </p>
+                      {assessment.score !== null && assessment.score !== undefined && (
+                        <p className="text-[10px] text-white/40">
+                          Score: {assessment.score}/{assessment.maxScore}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Study Sessions */}
         {sessions.map((session) => {
-          const isExpanded = expandedSessions.has(session.number);
+          const sectionKey = `session-${session.number}`;
+          const isExpanded = expandedSections.has(sectionKey);
           const completedCount = session.materials.filter(
             (m) => m.completed
           ).length;
           const totalCount = session.materials.length;
           const allComplete = totalCount > 0 && completedCount === totalCount;
 
+          // Format session title like reference: "Study Session 05 - Implemen..."
+          const sessionNumStr = String(session.number).padStart(2, "0");
+
+          // Group materials into parts if applicable
+          const parts: { label: string | null; materials: CourseMaterial[] }[] = [];
+          let currentPart: { label: string | null; materials: CourseMaterial[] } = {
+            label: null,
+            materials: [],
+          };
+
+          session.materials.forEach((material) => {
+            const lowerTitle = material.title.toLowerCase();
+            if (lowerTitle.startsWith("part ")) {
+              // This is a part header
+              if (currentPart.materials.length > 0 || currentPart.label) {
+                parts.push(currentPart);
+              }
+              currentPart = { label: material.title, materials: [] };
+            } else {
+              currentPart.materials.push(material);
+            }
+          });
+          if (currentPart.materials.length > 0 || currentPart.label) {
+            parts.push(currentPart);
+          }
+
+          // If no parts structure, just list all materials flat
+          const useParts = parts.some((p) => p.label !== null);
+
           return (
             <div key={session.number}>
               {/* Session header */}
               <button
-                onClick={() => toggleSession(session.number)}
+                onClick={() => toggleSection(sectionKey)}
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/5 transition-colors border-b border-white/5",
                   isExpanded && "bg-white/5"
@@ -176,7 +308,9 @@ export function CourseSidebar({
                   <ChevronRight className="h-4 w-4 text-white/40 shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{session.title}</p>
+                  <p className="text-sm font-medium truncate">
+                    {truncate(session.title, 32)}
+                  </p>
                   <p className="text-xs text-white/40">
                     {completedCount}/{totalCount} completed
                   </p>
@@ -189,50 +323,35 @@ export function CourseSidebar({
               {/* Session materials */}
               {isExpanded && (
                 <div className="pb-1">
-                  {session.materials.map((material, idx) => {
-                    const Icon = getMaterialIcon(material.type);
-                    const isActive = material.id === activeMaterialId;
-
-                    return (
-                      <button
-                        key={material.id}
-                        onClick={() => onSelectMaterial(material)}
-                        className={cn(
-                          "w-full flex items-center gap-3 px-4 pl-10 py-2.5 text-left transition-colors group",
-                          isActive
-                            ? "bg-blue-600/20 border-l-2 border-blue-400"
-                            : "hover:bg-white/5 border-l-2 border-transparent"
-                        )}
-                      >
-                        {material.completed ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
-                        ) : (
-                          <Circle className="h-4 w-4 text-white/30 shrink-0" />
-                        )}
-                        <Icon
-                          className={cn(
-                            "h-4 w-4 shrink-0",
-                            isActive ? "text-blue-300" : "text-white/50"
+                  {useParts
+                    ? parts.map((part, partIdx) => (
+                        <div key={partIdx}>
+                          {/* Part label header */}
+                          {part.label && (
+                            <div className="px-4 pl-10 py-2 text-xs font-semibold text-blue-300/80 uppercase tracking-wider">
+                              {truncate(part.label, 38)}
+                            </div>
                           )}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p
-                            className={cn(
-                              "text-xs truncate",
-                              isActive
-                                ? "text-blue-200 font-medium"
-                                : "text-white/70 group-hover:text-white/90"
-                            )}
-                          >
-                            {material.title}
-                          </p>
-                          <p className="text-[10px] text-white/30">
-                            {getMaterialLabel(material.type, idx)}
-                          </p>
+                          {part.materials.map((material) => (
+                            <MaterialItem
+                              key={material.id}
+                              material={material}
+                              sessionNum={sessionNumStr}
+                              isActive={material.id === activeMaterialId}
+                              onSelect={onSelectMaterial}
+                            />
+                          ))}
                         </div>
-                      </button>
-                    );
-                  })}
+                      ))
+                    : session.materials.map((material) => (
+                        <MaterialItem
+                          key={material.id}
+                          material={material}
+                          sessionNum={sessionNumStr}
+                          isActive={material.id === activeMaterialId}
+                          onSelect={onSelectMaterial}
+                        />
+                      ))}
                 </div>
               )}
             </div>
@@ -240,5 +359,59 @@ export function CourseSidebar({
         })}
       </div>
     </div>
+  );
+}
+
+function MaterialItem({
+  material,
+  sessionNum,
+  isActive,
+  onSelect,
+}: {
+  material: CourseMaterial;
+  sessionNum: string;
+  isActive: boolean;
+  onSelect: (m: CourseMaterial) => void;
+}) {
+  const Icon = getMaterialIcon(material.type, material.title);
+  const subLabel = getMaterialSubLabel(material.type, material.title);
+
+  return (
+    <button
+      onClick={() => onSelect(material)}
+      className={cn(
+        "w-full flex items-center gap-3 px-4 pl-10 py-2.5 text-left transition-colors group",
+        isActive
+          ? "bg-blue-600/20 border-l-2 border-blue-400"
+          : "hover:bg-white/5 border-l-2 border-transparent"
+      )}
+    >
+      {material.completed ? (
+        <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
+      ) : (
+        <Circle className="h-4 w-4 text-white/30 shrink-0" />
+      )}
+      <Icon
+        className={cn(
+          "h-4 w-4 shrink-0",
+          isActive ? "text-blue-300" : "text-white/50"
+        )}
+      />
+      <div className="flex-1 min-w-0">
+        <p
+          className={cn(
+            "text-xs truncate",
+            isActive
+              ? "text-blue-200 font-medium"
+              : "text-white/70 group-hover:text-white/90"
+          )}
+        >
+          {truncate(material.title, 35)}
+        </p>
+        {subLabel && (
+          <p className="text-[10px] text-white/30">{subLabel}</p>
+        )}
+      </div>
+    </button>
   );
 }
