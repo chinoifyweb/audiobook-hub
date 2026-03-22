@@ -138,6 +138,55 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function PATCH(request: NextRequest) {
+  try {
+    const lecturer = await requireLecturer();
+    const body = await request.json();
+    const { id, ...updates } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "Test id required" }, { status: 400 });
+    }
+
+    const test = await prisma.testExam.findUnique({
+      where: { id },
+      include: { courseAssignment: true },
+    });
+
+    if (!test) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    if (test.courseAssignment.lecturerId !== lecturer.id) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    }
+
+    const data: Record<string, unknown> = {};
+    if (updates.title !== undefined) data.title = updates.title;
+    if (updates.description !== undefined) data.description = updates.description;
+    if (updates.type !== undefined) data.type = updates.type;
+    if (updates.durationMinutes !== undefined) data.durationMinutes = Number(updates.durationMinutes);
+    if (updates.totalMarks !== undefined) data.totalMarks = Number(updates.totalMarks);
+    if (updates.passMark !== undefined) data.passMark = Number(updates.passMark);
+    if (updates.startTime !== undefined) data.startTime = new Date(updates.startTime);
+    if (updates.endTime !== undefined) data.endTime = new Date(updates.endTime);
+    if (updates.isPublished !== undefined) data.isPublished = updates.isPublished;
+    if (updates.shuffleQuestions !== undefined) data.shuffleQuestions = updates.shuffleQuestions;
+    if (updates.showResultsImmediately !== undefined) data.showResultsImmediately = updates.showResultsImmediately;
+    if (updates.maxAttempts !== undefined) data.maxAttempts = Number(updates.maxAttempts);
+
+    const updated = await prisma.testExam.update({
+      where: { id },
+      data,
+    });
+
+    return NextResponse.json(updated);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Server error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     const lecturer = await requireLecturer();
