@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, Card, CardContent } from "@repo/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
 import {
   ArrowRight,
   CheckCircle,
@@ -11,6 +11,10 @@ import {
   ClipboardList,
   CreditCard,
   BookOpen,
+  GraduationCap,
+  Monitor,
+  MapPin,
+  Briefcase,
 } from "lucide-react";
 
 const PORTAL_URL =
@@ -19,17 +23,34 @@ const PORTAL_URL =
 export const metadata: Metadata = {
   title: "Admissions",
   description:
-    "Learn about admission requirements, application process, and important dates for Berean Bible Academy.",
+    "Learn about admission requirements for BA, PGD, MA, and M.Div. programmes, application process, hybrid delivery model, and important dates at Berean Bible Academy.",
 };
 
-const requirements = [
-  "Born-again Christian with a personal testimony of faith",
-  "Minimum of Senior Secondary Certificate (SSCE/WAEC) or equivalent for Certificate and Diploma programs",
-  "Bachelor's degree from a recognized institution for Master's programs",
-  "Recommendation letter from a pastor or church leader",
-  "Proficiency in English language (written and spoken)",
-  "Access to a computer and reliable internet connection",
-  "Commitment to complete the program within the stipulated duration",
+const baRequirements = [
+  "Five (5) O'Level credit passes (WAEC/NECO/GCE) including English Language, in a maximum of two sittings.",
+  "Direct Entry (200 Level): NCE, ND, or Diploma in Theology.",
+  "Mature Entry (25+): 3 years ministry experience plus entrance assessment.",
+  "Pastoral recommendation and statement of purpose.",
+];
+
+const pgdRequirements = [
+  "Bachelor's degree from any discipline.",
+  "Minimum of Second Class Lower (2.2) or CGPA of 2.50.",
+  "Two references required.",
+];
+
+const maRequirements = [
+  "B.A. in Theology or a related field.",
+  "Non-theology graduates must complete the PGD first.",
+  "Minimum of Second Class Lower (2.2).",
+  "Two references and a writing sample required.",
+];
+
+const mdivRequirements = [
+  "Bachelor's degree from any discipline.",
+  "Minimum of Second Class Lower (2.2).",
+  "Evidence of calling to ministry.",
+  "Three references required.",
 ];
 
 const documents = [
@@ -37,7 +58,7 @@ const documents = [
   { name: "Passport Photographs (2 copies)", icon: UserCheck },
   { name: "Educational Certificates & Transcripts", icon: FileText },
   { name: "Pastoral Recommendation Letter", icon: FileText },
-  { name: "Personal Testimony (500 words)", icon: BookOpen },
+  { name: "Statement of Purpose", icon: BookOpen },
   { name: "Valid Means of Identification", icon: UserCheck },
 ];
 
@@ -53,7 +74,7 @@ const steps = [
     step: 2,
     title: "Complete the Application",
     description:
-      "Fill out the online application form with your personal information, educational background, and program choice.",
+      "Fill out the online application form with your personal information, educational background, and programme choice.",
     icon: ClipboardList,
   },
   {
@@ -72,6 +93,39 @@ const steps = [
   },
 ];
 
+const hybridModel = [
+  {
+    title: "Online Learning (70%)",
+    icon: Monitor,
+    items: [
+      "Asynchronous video lectures via LMS -- available 24/7",
+      "Weekly discussion forums, peer interaction, and collaborative assignments",
+      "Digital textbooks and Digital Theological Library (DTL)",
+      "Online quizzes, assignments, and essay submissions",
+      "Virtual mentoring and office hours via Zoom/Google Meet",
+    ],
+  },
+  {
+    title: "On-Campus Intensives (20%)",
+    icon: MapPin,
+    items: [
+      "1-2 week residential intensive per semester (January & July)",
+      "Preaching labs, counselling practicums, prayer retreats, ministry simulations",
+      "Impartation services, chapel, and spiritual formation encounters",
+      "Oral exams, thesis defences, and portfolio presentations",
+    ],
+  },
+  {
+    title: "Supervised Practicum (10%)",
+    icon: Briefcase,
+    items: [
+      "Students complete hours in local church, ministry, marketplace, or approved site",
+      "Supervised by Academy-approved field mentor and faculty advisor",
+      "Reflective journaling, competency evaluations, and portfolio",
+    ],
+  },
+];
+
 const importantDates = [
   { event: "Application Opens", date: "January 15, 2026" },
   { event: "Early Admission Deadline", date: "March 31, 2026" },
@@ -80,6 +134,37 @@ const importantDates = [
   { event: "Orientation Week", date: "September 1-5, 2026" },
   { event: "Classes Begin", date: "September 8, 2026" },
 ];
+
+function RequirementsCard({
+  title,
+  icon: Icon,
+  requirements,
+}: {
+  title: string;
+  icon: React.ElementType;
+  requirements: string[];
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Icon className="h-5 w-5 text-primary" />
+          <CardTitle className="text-base">{title}</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <ul className="space-y-2">
+          {requirements.map((req, i) => (
+            <li key={i} className="flex items-start gap-2">
+              <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <span className="text-sm text-muted-foreground">{req}</span>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function AdmissionsPage() {
   return (
@@ -92,7 +177,8 @@ export default function AdmissionsPage() {
           </h1>
           <p className="mx-auto max-w-2xl text-blue-100">
             Begin your journey in biblical education. Learn about our admission
-            requirements, application process, and important dates.
+            requirements by programme level, our hybrid delivery model, and the
+            application process.
           </p>
           <div className="mt-6">
             <Button
@@ -109,27 +195,81 @@ export default function AdmissionsPage() {
         </div>
       </section>
 
-      {/* Requirements */}
+      {/* Admission Requirements by Programme Level */}
       <section className="py-16">
         <div className="container">
-          <div className="mx-auto max-w-3xl">
-            <h2 className="mb-6 text-2xl font-bold">
-              Admission Requirements
+          <div className="mx-auto max-w-4xl">
+            <h2 className="mb-8 text-center text-2xl font-bold">
+              Admission Requirements by Programme
             </h2>
-            <ul className="space-y-3">
-              {requirements.map((req, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                  <span className="text-muted-foreground">{req}</span>
-                </li>
+            <div className="grid gap-6 md:grid-cols-2">
+              <RequirementsCard
+                title="Bachelor of Arts (B.A.)"
+                icon={BookOpen}
+                requirements={baRequirements}
+              />
+              <RequirementsCard
+                title="PGD in Theology"
+                icon={FileText}
+                requirements={pgdRequirements}
+              />
+              <RequirementsCard
+                title="Master of Arts (M.A.)"
+                icon={GraduationCap}
+                requirements={maRequirements}
+              />
+              <RequirementsCard
+                title="Master of Divinity (M.Div.)"
+                icon={GraduationCap}
+                requirements={mdivRequirements}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Hybrid Delivery Model */}
+      <section className="bg-slate-50 py-16">
+        <div className="container">
+          <div className="mx-auto max-w-4xl">
+            <h2 className="mb-3 text-center text-2xl font-bold">
+              Hybrid Delivery Model
+            </h2>
+            <p className="mx-auto mb-8 max-w-2xl text-center text-muted-foreground">
+              Our programmes are delivered through a blend of online learning,
+              on-campus intensives, and supervised practicum to ensure a
+              comprehensive educational experience.
+            </p>
+            <div className="grid gap-6 md:grid-cols-3">
+              {hybridModel.map((component) => (
+                <Card key={component.title}>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <component.icon className="h-5 w-5 text-primary" />
+                      <CardTitle className="text-sm">{component.title}</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      {component.items.map((item, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <CheckCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary/60" />
+                          <span className="text-xs text-muted-foreground">
+                            {item}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
               ))}
-            </ul>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Required Documents */}
-      <section className="bg-slate-50 py-16">
+      <section className="py-16">
         <div className="container">
           <div className="mx-auto max-w-3xl">
             <h2 className="mb-6 text-2xl font-bold">Required Documents</h2>
@@ -148,7 +288,7 @@ export default function AdmissionsPage() {
       </section>
 
       {/* Application Process */}
-      <section className="py-16">
+      <section className="bg-slate-50 py-16">
         <div className="container">
           <div className="mx-auto max-w-3xl">
             <h2 className="mb-8 text-center text-2xl font-bold">
@@ -179,7 +319,7 @@ export default function AdmissionsPage() {
       </section>
 
       {/* Important Dates */}
-      <section className="bg-slate-50 py-16">
+      <section className="py-16">
         <div className="container">
           <div className="mx-auto max-w-3xl">
             <h2 className="mb-6 text-2xl font-bold">
@@ -219,7 +359,7 @@ export default function AdmissionsPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-16">
+      <section className="bg-slate-50 py-16">
         <div className="container text-center">
           <h2 className="mb-4 text-2xl font-bold">
             Ready to Start Your Application?

@@ -14,113 +14,120 @@ import {
   Star,
   ShieldCheck,
   Laptop,
-  DollarSign,
+  Zap,
+  Monitor,
+  MapPin,
+  Briefcase,
 } from "lucide-react";
 
 const PORTAL_URL =
   process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.bba.org.ng";
 
 const stats = [
-  { label: "Students Enrolled", value: "2,500+", icon: Users },
-  { label: "Programs Offered", value: "12+", icon: GraduationCap },
-  { label: "Years of Excellence", value: "15+", icon: Award },
-  { label: "Countries Represented", value: "30+", icon: Globe },
+  { label: "Academic Programmes", value: "12", icon: GraduationCap },
+  { label: "B.A. Specialisations", value: "4", icon: BookOpen },
+  { label: "M.A. Specialisations", value: "6", icon: Award },
+  { label: "Hybrid Delivery", value: "70/20/10", icon: Globe },
 ];
 
 const featuredPrograms = [
   {
-    name: "Certificate in Christian Ministry",
-    degreeType: "Certificate",
-    duration: "2 Semesters",
-    description:
-      "A foundational program designed to equip believers with essential ministry skills and biblical knowledge for effective service in the local church.",
-    href: "/programs",
-  },
-  {
-    name: "Diploma in Theology",
-    degreeType: "Diploma",
-    duration: "4 Semesters",
-    description:
-      "A comprehensive study of systematic theology, church history, and pastoral ministry, preparing students for deeper service and leadership roles.",
-    href: "/programs",
-  },
-  {
-    name: "Bachelor of Biblical Studies",
+    name: "B.A. Pastoral Ministry",
     degreeType: "Bachelor's",
-    duration: "8 Semesters",
+    duration: "4 Years (8 Semesters)",
+    credits: "120 Credits",
     description:
-      "An in-depth academic program covering Old and New Testament, hermeneutics, biblical languages, and practical ministry for aspiring scholars and leaders.",
-    href: "/programs",
+      "Blending homiletics and pastoral care with pneumatological depth, social media ministry, content creation, and AI-era church leadership.",
+    href: "/programs/BA-PM",
   },
   {
-    name: "Master of Divinity",
-    degreeType: "Master's",
-    duration: "6 Semesters",
+    name: "PGD in Theology",
+    degreeType: "Postgraduate Diploma",
+    duration: "1 Year (2 Semesters)",
+    credits: "36 Credits",
     description:
-      "An advanced professional degree for those called to pastoral ministry, missions, or academic pursuits in biblical and theological studies.",
-    href: "/programs",
+      "A one-year bridge programme for graduates of any discipline seeking to enter theological studies. Credits transferable to M.A. programmes.",
+    href: "/programs/PGD-THEO",
+  },
+  {
+    name: "M.A. Systematic Theology",
+    degreeType: "Master's",
+    duration: "2 Years (4 Semesters)",
+    credits: "48 Credits",
+    description:
+      "Advanced Christian doctrine through historical, biblical, pneumatological, and philosophical perspectives. Prepares for doctoral studies and seminary teaching.",
+    href: "/programs/MA-ST",
+  },
+  {
+    name: "Master of Divinity (M.Div.)",
+    degreeType: "Master's",
+    duration: "3 Years (6 Semesters)",
+    credits: "78 Credits",
+    description:
+      "The gold-standard professional degree covering biblical languages, systematic theology, pneumatology, homiletics, pastoral care, and digital ministry.",
+    href: "/programs/MDIV",
   },
 ];
 
-const steps = [
+const deliveryModel = [
   {
-    step: 1,
-    title: "Apply Online",
+    percentage: "70%",
+    title: "Online Learning",
     description:
-      "Complete our simple online application form with your personal information and program choice.",
-    icon: CalendarDays,
+      "Asynchronous video lectures, discussion forums, digital textbooks, and virtual mentoring available 24/7.",
+    icon: Monitor,
   },
   {
-    step: 2,
-    title: "Get Admitted",
+    percentage: "20%",
+    title: "On-Campus Intensives",
     description:
-      "Receive your admission letter, pay tuition fees, and get access to the student portal.",
-    icon: CheckCircle,
+      "1-2 week residential sessions each semester featuring preaching labs, prayer retreats, and ministry simulations.",
+    icon: MapPin,
   },
   {
-    step: 3,
-    title: "Start Learning",
+    percentage: "10%",
+    title: "Supervised Practicum",
     description:
-      "Access course materials, watch video lectures, complete assignments, and earn your degree.",
-    icon: BookOpen,
+      "Field placements in local churches, ministries, and approved sites with faculty mentoring.",
+    icon: Briefcase,
   },
 ];
 
 const benefits = [
   {
-    title: "Accredited Programs",
+    title: "Spirit-Empowered Formation",
     description:
-      "Our programs meet rigorous academic standards, ensuring your qualification is recognized and respected.",
-    icon: ShieldCheck,
+      "Training that produces not just knowledge but the demonstration of the Spirit and power.",
+    icon: Zap,
   },
   {
-    title: "Flexible Schedule",
+    title: "Hybrid Delivery",
     description:
-      "Study at your own pace with 24/7 access to course materials. Perfect for working professionals.",
-    icon: Clock,
+      "70% online, 20% on-campus intensives, and 10% supervised practicum for a comprehensive experience.",
+    icon: Globe,
   },
   {
     title: "Expert Faculty",
     description:
-      "Learn from experienced pastors, theologians, and scholars dedicated to your academic growth.",
+      "Learn from experienced pastors, theologians, and scholars with doctoral qualifications and active ministry.",
     icon: Users,
   },
   {
-    title: "Affordable Tuition",
+    title: "Academic Excellence",
     description:
-      "Quality biblical education at competitive rates with flexible payment options available.",
-    icon: DollarSign,
+      "Rigorous scholarship aligned with globally recognised seminary standards (ATS framework).",
+    icon: ShieldCheck,
   },
   {
-    title: "Digital Library",
+    title: "Digital Theological Library",
     description:
-      "Access a rich collection of e-books, journals, commentaries, and multimedia study resources.",
+      "Access a rich collection of digital textbooks, journals, commentaries, and multimedia study resources.",
     icon: Library,
   },
   {
-    title: "Online Learning",
+    title: "Modern LMS Platform",
     description:
-      "Modern learning management system with video lectures, interactive quizzes, and progress tracking.",
+      "Online learning management system with video lectures, interactive quizzes, and progress tracking.",
     icon: Laptop,
   },
 ];
@@ -128,21 +135,21 @@ const benefits = [
 const testimonials = [
   {
     quote:
-      "Berean Bible Academy transformed my understanding of Scripture. The flexible online format allowed me to study while pastoring my church.",
+      "Berean Bible Academy transformed my understanding of Scripture. The flexible hybrid format allowed me to study while pastoring my church.",
     name: "Pastor Emmanuel Obi",
-    program: "Diploma in Theology, Class of 2024",
+    program: "B.A. Pastoral Ministry",
   },
   {
     quote:
       "The faculty are exceptional and truly care about each student. I gained not just knowledge but a deeper relationship with God through my studies.",
     name: "Sister Grace Adeyemi",
-    program: "Certificate in Christian Ministry, Class of 2025",
+    program: "M.A. Pastoral Counselling",
   },
   {
     quote:
-      "As a missionary in a remote area, BBA made it possible for me to earn my degree without leaving the field. The online platform is excellent.",
+      "As a missionary in a remote area, BBA made it possible for me to pursue my degree without leaving the field. The online platform is excellent.",
     name: "Rev. James Okoro",
-    program: "Bachelor of Biblical Studies, Class of 2023",
+    program: "B.A. Missions & Intercultural Studies",
   },
 ];
 
@@ -156,15 +163,16 @@ export default function HomePage() {
           <div className="mx-auto max-w-3xl text-center">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm">
               <GraduationCap className="h-4 w-4" />
-              <span>Applications Open for 2025/2026 Session</span>
+              <span>Applications Open for 2026/2027 Session</span>
             </div>
             <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
-              Where Biblical Education Transforms Lives
+              It Takes Training to Triumph
             </h1>
             <p className="mb-8 text-lg text-blue-100 md:text-xl">
-              Berean Bible Academy provides accessible, high-quality online
-              Christian education to equip believers for ministry, leadership,
-              and lifelong service to God and His people.
+              Berean Bible Academy provides accessible, affordable, and rigorous
+              theological education through a hybrid model that equips
+              Spirit-filled Kingdom Ambassadors for the church, the marketplace,
+              and every sphere of influence.
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Button
@@ -183,7 +191,7 @@ export default function HomePage() {
                 className="border-white/30 bg-transparent text-white hover:bg-white/10"
                 asChild
               >
-                <Link href="/programs">Explore Programs</Link>
+                <Link href="/programs">Explore Programmes</Link>
               </Button>
             </div>
           </div>
@@ -214,11 +222,12 @@ export default function HomePage() {
         <div className="container">
           <div className="mb-12 text-center">
             <h2 className="mb-3 text-3xl font-bold tracking-tight md:text-4xl">
-              Our Programs
+              Our Programmes
             </h2>
             <p className="mx-auto max-w-2xl text-muted-foreground">
-              Choose from a range of accredited programs designed to deepen your
-              understanding of Scripture and prepare you for effective ministry.
+              12 programmes across undergraduate and postgraduate levels,
+              blending sound biblical scholarship with practical ministry skills
+              and digital fluency.
             </p>
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -234,9 +243,13 @@ export default function HomePage() {
                   <CardTitle className="text-lg">{program.name}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-1 flex-col">
-                  <div className="mb-3 flex items-center gap-1 text-sm text-muted-foreground">
+                  <div className="mb-1 flex items-center gap-1 text-sm text-muted-foreground">
                     <Clock className="h-3.5 w-3.5" />
                     <span>{program.duration}</span>
+                  </div>
+                  <div className="mb-3 flex items-center gap-1 text-sm text-muted-foreground">
+                    <BookOpen className="h-3.5 w-3.5" />
+                    <span>{program.credits}</span>
                   </div>
                   <p className="mb-4 flex-1 text-sm text-muted-foreground">
                     {program.description}
@@ -254,7 +267,7 @@ export default function HomePage() {
           <div className="mt-8 text-center">
             <Button asChild>
               <Link href="/programs">
-                View All Programs
+                View All 12 Programmes
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -262,27 +275,28 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* How It Works */}
+      {/* Hybrid Delivery Model */}
       <section className="bg-slate-50 py-16 md:py-20">
         <div className="container">
           <div className="mb-12 text-center">
             <h2 className="mb-3 text-3xl font-bold tracking-tight md:text-4xl">
-              How It Works
+              Hybrid Delivery Model
             </h2>
             <p className="mx-auto max-w-2xl text-muted-foreground">
-              Getting started with Berean Bible Academy is simple. Follow these
-              three steps to begin your journey.
+              Our unique blend of online learning, on-campus intensives, and
+              supervised practicum ensures a comprehensive educational
+              experience.
             </p>
           </div>
           <div className="mx-auto grid max-w-4xl gap-8 md:grid-cols-3">
-            {steps.map((step) => (
-              <div key={step.step} className="text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-                  {step.step}
+            {deliveryModel.map((item) => (
+              <div key={item.title} className="text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-xl font-bold text-primary-foreground">
+                  {item.percentage}
                 </div>
-                <h3 className="mb-2 text-lg font-semibold">{step.title}</h3>
+                <h3 className="mb-2 text-lg font-semibold">{item.title}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {step.description}
+                  {item.description}
                 </p>
               </div>
             ))}
@@ -329,7 +343,7 @@ export default function HomePage() {
             </h2>
             <p className="mx-auto max-w-2xl text-muted-foreground">
               Hear from students and alumni who have experienced the
-              transformative impact of biblical education at BBA.
+              transformative impact of theological education at BBA.
             </p>
           </div>
           <div className="grid gap-6 md:grid-cols-3">
@@ -368,7 +382,8 @@ export default function HomePage() {
           </h2>
           <p className="mx-auto mb-8 max-w-2xl text-blue-100">
             Take the first step toward deepening your biblical knowledge and
-            equipping yourself for impactful ministry. Applications are now open.
+            equipping yourself for impactful ministry. Applications are now open
+            for the 2026/2027 session.
           </p>
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button

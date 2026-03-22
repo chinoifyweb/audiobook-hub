@@ -14,6 +14,7 @@ export function degreeTypeLabel(type: string): string {
   const labels: Record<string, string> = {
     certificate: "Certificate",
     diploma: "Diploma",
+    pgd: "Postgraduate Diploma",
     bachelors: "Bachelor's Degree",
     masters: "Master's Degree",
     phd: "Doctorate (Ph.D.)",
