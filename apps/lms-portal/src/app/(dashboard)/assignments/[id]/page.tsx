@@ -44,7 +44,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { PaymentGateClient } from "@/components/payment-gate-client";
-import { format, formatDistanceToNowStrict, differenceInSeconds } from "date-fns";
+import { format, differenceInSeconds } from "date-fns";
 
 interface Assignment {
   id: string;
