@@ -1,6 +1,7 @@
 "use client";
 
 import { VideoPlayer } from "./video-player";
+import { DocumentReader } from "./document-reader";
 import { Button } from "@repo/ui";
 import {
   FileText,
@@ -10,7 +11,10 @@ import {
   CheckCircle2,
   Circle,
   ChevronRight,
+  Maximize2,
 } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import type { CourseMaterial } from "./course-sidebar";
 
 interface MaterialViewerProps {
@@ -20,12 +24,19 @@ interface MaterialViewerProps {
   isUpdating: boolean;
 }
 
+function isReadableType(type: string): boolean {
+  return ["pdf", "document", "ebook"].includes(type);
+}
+
 export function MaterialViewer({
   material,
   onMarkComplete,
   onNext,
   isUpdating,
 }: MaterialViewerProps) {
+  const params = useParams();
+  const courseId = params.id as string;
+
   return (
     <div className="max-w-4xl mx-auto">
       {/* Material header */}
@@ -67,106 +78,117 @@ export function MaterialViewer({
         )}
 
         {material.type === "pdf" && (
-          <div className="p-6">
-            <div className="flex flex-col items-center gap-4 py-8">
-              <div className="h-20 w-16 bg-red-50 rounded-lg flex items-center justify-center">
-                <FileText className="h-10 w-10 text-red-500" />
+          <div>
+            {/* Action bar */}
+            <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-8 bg-red-50 rounded flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-red-500" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm text-gray-900">{material.title}</p>
+                  <p className="text-xs text-gray-500">PDF Document</p>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="font-medium text-gray-900">{material.title}</p>
-                <p className="text-sm text-gray-500 mt-1">PDF Document</p>
-              </div>
-              <div className="flex gap-3">
-                <a
-                  href={material.contentUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button variant="outline" size="sm">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Open in new tab
+              <div className="flex gap-2">
+                <Link href={`/courses/${courseId}/read/${material.id}`}>
+                  <Button size="sm" className="gap-1.5">
+                    <BookOpen className="h-4 w-4" />
+                    Read Online
                   </Button>
-                </a>
+                </Link>
                 <a href={material.contentUrl} download>
-                  <Button size="sm">
-                    <Download className="h-4 w-4 mr-2" />
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <Download className="h-4 w-4" />
                     Download
                   </Button>
                 </a>
               </div>
             </div>
-            {/* Embed PDF */}
-            <div className="mt-4">
-              <iframe
-                src={`${material.contentUrl}#view=FitH`}
-                className="w-full rounded-lg border"
-                style={{ height: "70vh" }}
-                title={material.title}
+            {/* Embedded PDF viewer */}
+            <div>
+              <DocumentReader
+                fileUrl={material.contentUrl}
+                fileName={material.title}
+                fileType="pdf"
               />
             </div>
           </div>
         )}
 
         {material.type === "ebook" && (
-          <div className="p-6">
-            <div className="flex flex-col items-center gap-4 py-8">
-              <div className="h-20 w-16 bg-blue-50 rounded-lg flex items-center justify-center">
-                <BookOpen className="h-10 w-10 text-blue-500" />
+          <div>
+            {/* Action bar */}
+            <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-8 bg-blue-50 rounded flex items-center justify-center">
+                  <BookOpen className="h-5 w-5 text-blue-500" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm text-gray-900">{material.title}</p>
+                  <p className="text-xs text-gray-500">E-Book</p>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="font-medium text-gray-900">{material.title}</p>
-                <p className="text-sm text-gray-500 mt-1">E-Book</p>
-              </div>
-              <div className="flex gap-3">
-                <a
-                  href={material.contentUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button variant="outline" size="sm">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Open Reader
+              <div className="flex gap-2">
+                <Link href={`/courses/${courseId}/read/${material.id}`}>
+                  <Button size="sm" className="gap-1.5">
+                    <BookOpen className="h-4 w-4" />
+                    Read Online
                   </Button>
-                </a>
+                </Link>
                 <a href={material.contentUrl} download>
-                  <Button size="sm">
-                    <Download className="h-4 w-4 mr-2" />
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <Download className="h-4 w-4" />
                     Download
                   </Button>
                 </a>
               </div>
             </div>
+            {/* Embedded viewer */}
+            <div>
+              <DocumentReader
+                fileUrl={material.contentUrl}
+                fileName={material.title}
+                fileType="ebook"
+              />
+            </div>
           </div>
         )}
 
         {material.type === "document" && (
-          <div className="p-6">
-            <div className="flex flex-col items-center gap-4 py-8">
-              <div className="h-20 w-16 bg-purple-50 rounded-lg flex items-center justify-center">
-                <FileText className="h-10 w-10 text-purple-500" />
+          <div>
+            {/* Action bar */}
+            <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-8 bg-purple-50 rounded flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-purple-500" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm text-gray-900">{material.title}</p>
+                  <p className="text-xs text-gray-500">Document</p>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="font-medium text-gray-900">{material.title}</p>
-                <p className="text-sm text-gray-500 mt-1">Document</p>
-              </div>
-              <div className="flex gap-3">
-                <a
-                  href={material.contentUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button variant="outline" size="sm">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    View Document
+              <div className="flex gap-2">
+                <Link href={`/courses/${courseId}/read/${material.id}`}>
+                  <Button size="sm" className="gap-1.5">
+                    <BookOpen className="h-4 w-4" />
+                    Read Online
                   </Button>
-                </a>
+                </Link>
                 <a href={material.contentUrl} download>
-                  <Button size="sm">
-                    <Download className="h-4 w-4 mr-2" />
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <Download className="h-4 w-4" />
                     Download
                   </Button>
                 </a>
               </div>
+            </div>
+            {/* Embedded viewer */}
+            <div>
+              <DocumentReader
+                fileUrl={material.contentUrl}
+                fileName={material.title}
+              />
             </div>
           </div>
         )}

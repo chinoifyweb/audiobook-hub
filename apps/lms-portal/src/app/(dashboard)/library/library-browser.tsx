@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   Button,
   Card,
@@ -437,8 +438,25 @@ export function LibraryBrowser({
                   )}
 
                   <div className="flex gap-2 pt-2">
+                    {["pdf", "docx", "pptx", "doc", "ppt", "epub"].includes(
+                      selectedBook.fileType.toLowerCase()
+                    ) && (
+                      <Link href={`/library/read/${selectedBook.id}`} className="flex-1">
+                        <Button className="w-full gap-1.5">
+                          <BookOpen className="h-4 w-4" />
+                          Read Online
+                        </Button>
+                      </Link>
+                    )}
                     <Button
-                      className="flex-1"
+                      variant="outline"
+                      className={
+                        ["pdf", "docx", "pptx", "doc", "ppt", "epub"].includes(
+                          selectedBook.fileType.toLowerCase()
+                        )
+                          ? ""
+                          : "flex-1"
+                      }
                       onClick={() => handleDownload(selectedBook)}
                       disabled={downloading === selectedBook.id}
                     >
@@ -454,17 +472,6 @@ export function LibraryBrowser({
                         </>
                       )}
                     </Button>
-                    {selectedBook.fileType === "pdf" && (
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          window.open(selectedBook.fileUrl, "_blank")
-                        }
-                      >
-                        <Eye className="mr-2 h-4 w-4" />
-                        Read Online
-                      </Button>
-                    )}
                   </div>
                 </div>
               </div>

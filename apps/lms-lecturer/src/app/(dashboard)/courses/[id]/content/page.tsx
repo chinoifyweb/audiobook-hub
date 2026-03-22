@@ -676,15 +676,18 @@ function EditSessionDialog({ courseId, sessionNumber, currentTitle, onUpdated }:
   );
 }
 
-/** Preview Dialog for any content type */
+/** Preview Dialog for any content type — with inline document viewer */
 function PreviewDialog({ material, open, onClose }: { material: Material; open: boolean; onClose: () => void }) {
   const isVideo = material.type === "youtube_video" || material.type === "link" || material.type === "video";
   const isPdf = material.type === "pdf";
   const isDoc = material.type === "document" || material.type === "ebook";
 
+  // Build Google Docs Viewer URL for non-PDF documents
+  const googleViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(material.contentUrl)}&embedded=true`;
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh]">
+      <DialogContent className="max-w-4xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MaterialTypeIcon type={material.type} />
@@ -695,28 +698,44 @@ function PreviewDialog({ material, open, onClose }: { material: Material; open: 
         {isPdf && (
           <div className="space-y-3">
             <iframe
-              src={material.contentUrl}
-              className="w-full h-[60vh] rounded-md border"
+              src={`${material.contentUrl}#toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
+              className="w-full h-[65vh] rounded-md border"
               title="PDF Preview"
             />
-            <a href={material.contentUrl} target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" size="sm" className="gap-1.5">
-                <ExternalLink className="h-4 w-4" /> Open in New Tab
-              </Button>
-            </a>
+            <div className="flex gap-2">
+              <a href={material.contentUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <ExternalLink className="h-4 w-4" /> Open in New Tab
+                </Button>
+              </a>
+              <a href={material.contentUrl} download>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <FileUp className="h-4 w-4" /> Download
+                </Button>
+              </a>
+            </div>
           </div>
         )}
         {isDoc && (
-          <div className="text-center py-8 space-y-3">
-            <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-              This document type cannot be previewed inline.
-            </p>
-            <a href={material.contentUrl} target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" className="gap-1.5">
-                <ExternalLink className="h-4 w-4" /> Open / Download
-              </Button>
-            </a>
+          <div className="space-y-3">
+            <iframe
+              src={googleViewerUrl}
+              className="w-full h-[65vh] rounded-md border"
+              title="Document Preview"
+              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+            />
+            <div className="flex gap-2">
+              <a href={material.contentUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <ExternalLink className="h-4 w-4" /> Open in New Tab
+                </Button>
+              </a>
+              <a href={material.contentUrl} download>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <FileUp className="h-4 w-4" /> Download
+                </Button>
+              </a>
+            </div>
           </div>
         )}
         {material.description && (
