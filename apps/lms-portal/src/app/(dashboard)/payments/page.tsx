@@ -308,7 +308,7 @@ export default function PaymentsPage() {
                       onChange={(e) => setReceiptForm({ ...receiptForm, amount: e.target.value })}
                     />
                     <p className="text-xs text-muted-foreground">
-                      BA: {"\u20A6"}75,000 | PGD: {"\u20A6"}100,000 | MA: {"\u20A6"}125,000 | M.Div: {"\u20A6"}150,000
+                      {"BA: \u20A675,000 | PGD: \u20A6100,000 | MA: \u20A6125,000 | M.Div: \u20A6150,000"}
                     </p>
                   </div>
                   <Button
@@ -519,26 +519,6 @@ export default function PaymentsPage() {
                 </div>
               </div>
             )}
-
-              <div className="flex flex-wrap justify-center gap-3 pt-2">
-                <a
-                  href="https://wa.me/2349027677276?text=Hello%2C%20I%20am%20a%20student%20and%20I%20need%20help%20with%20my%20tuition%20payment."
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button variant="default" size="sm" className="gap-1.5">
-                    <MessageCircle className="h-3.5 w-3.5" />
-                    WhatsApp Admin
-                  </Button>
-                </a>
-                <a href="mailto:info@bba.org.ng">
-                  <Button variant="outline" size="sm" className="gap-1.5">
-                    <HelpCircle className="h-3.5 w-3.5" />
-                    Email Admin
-                  </Button>
-                </a>
-              </div>
-            </div>
           </CardContent>
         </Card>
       )}
