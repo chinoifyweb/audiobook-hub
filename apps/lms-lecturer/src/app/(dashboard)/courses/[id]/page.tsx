@@ -21,6 +21,8 @@ import {
   ExternalLink,
   Calendar,
   Table2,
+  Video,
+  BarChart3,
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -96,6 +98,43 @@ export default async function CourseDetailPage({ params }: Props) {
         {course.description && (
           <p className="mt-2 text-sm text-muted-foreground">{course.description}</p>
         )}
+      </div>
+
+      {/* Quick Navigation to New Pages */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Link href={`/courses/${params.id}/content`}>
+          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-blue-200 bg-blue-50/30">
+            <CardContent className="flex items-center gap-3 p-4">
+              <Video className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="text-sm font-medium">Manage Content</p>
+                <p className="text-xs text-muted-foreground">Videos, readings, sessions</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href={`/courses/${params.id}/assessments`}>
+          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-purple-200 bg-purple-50/30">
+            <CardContent className="flex items-center gap-3 p-4">
+              <FileQuestion className="h-5 w-5 text-purple-600" />
+              <div>
+                <p className="text-sm font-medium">Assessments</p>
+                <p className="text-xs text-muted-foreground">Quizzes, exams, grades</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href={`/courses/${params.id}/students`}>
+          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-green-200 bg-green-50/30">
+            <CardContent className="flex items-center gap-3 p-4">
+              <BarChart3 className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="text-sm font-medium">Student Performance</p>
+                <p className="text-xs text-muted-foreground">Grades, at-risk, export</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Tabs */}

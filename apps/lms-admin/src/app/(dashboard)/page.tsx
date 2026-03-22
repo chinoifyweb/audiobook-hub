@@ -1,13 +1,15 @@
 import { prisma } from "@repo/db";
 import { StatsCard } from "@/components/stats-card";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
-import { Users, UserCheck, GraduationCap, FileText, CreditCard } from "lucide-react";
+import { Users, UserCheck, GraduationCap, FileText, CreditCard, FileQuestion, Eye, Table2 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 
 export const dynamic = "force-dynamic";
 
 async function getDashboardData() {
+  const now = new Date();
+
   const [
     totalStudents,
     totalLecturers,
@@ -15,6 +17,9 @@ async function getDashboardData() {
     pendingApplications,
     recentApplications,
     revenueThisMonth,
+    activeAssessments,
+    totalMaterials,
+    coursesWithNoContent,
   ] = await Promise.all([
     prisma.studentProfile.count(),
     prisma.lecturerProfile.count(),
@@ -32,10 +37,24 @@ async function getDashboardData() {
       where: {
         status: "successful",
         paidAt: {
-          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+          gte: new Date(now.getFullYear(), now.getMonth(), 1),
         },
       },
       _sum: { amount: true },
+    }),
+    prisma.testExam.count({
+      where: {
+        isPublished: true,
+        startTime: { lte: now },
+        endTime: { gte: now },
+      },
+    }),
+    prisma.courseMaterial.count(),
+    prisma.courseAssignment.count({
+      where: {
+        isActive: true,
+        materials: { none: {} },
+      },
     }),
   ]);
 
@@ -46,6 +65,9 @@ async function getDashboardData() {
     pendingApplications,
     recentApplications,
     revenueThisMonth: revenueThisMonth._sum.amount || 0,
+    activeAssessments,
+    totalMaterials,
+    coursesWithNoContent,
   };
 }
 
@@ -70,7 +92,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Students"
           value={data.totalStudents}
@@ -82,11 +104,6 @@ export default async function DashboardPage() {
           icon={UserCheck}
         />
         <StatsCard
-          title="Total Programs"
-          value={data.totalPrograms}
-          icon={GraduationCap}
-        />
-        <StatsCard
           title="Pending Applications"
           value={data.pendingApplications}
           icon={FileText}
@@ -95,6 +112,28 @@ export default async function DashboardPage() {
           title="Revenue This Month"
           value={`\u20A6${(data.revenueThisMonth / 100).toLocaleString()}`}
           icon={CreditCard}
+        />
+      </div>
+
+      {/* Learning Stats */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatsCard
+          title="Active Assessments"
+          value={data.activeAssessments}
+          description="Currently open for students"
+          icon={FileQuestion}
+        />
+        <StatsCard
+          title="Course Materials"
+          value={data.totalMaterials}
+          description="Videos, readings, documents"
+          icon={Eye}
+        />
+        <StatsCard
+          title="Courses Without Content"
+          value={data.coursesWithNoContent}
+          description="Need lecturer attention"
+          icon={Table2}
         />
       </div>
 
@@ -122,6 +161,24 @@ export default async function DashboardPage() {
               <Link href="/lecturers">
                 <UserCheck className="mr-2 h-4 w-4" />
                 Add Lecturer
+              </Link>
+            </Button>
+            <Button asChild className="w-full justify-start" variant="outline">
+              <Link href="/assessments">
+                <FileQuestion className="mr-2 h-4 w-4" />
+                View Assessments
+              </Link>
+            </Button>
+            <Button asChild className="w-full justify-start" variant="outline">
+              <Link href="/grades">
+                <Table2 className="mr-2 h-4 w-4" />
+                Grade Reports
+              </Link>
+            </Button>
+            <Button asChild className="w-full justify-start" variant="outline">
+              <Link href="/content-monitoring">
+                <Eye className="mr-2 h-4 w-4" />
+                Content Monitoring
               </Link>
             </Button>
           </CardContent>

@@ -18,6 +18,9 @@ import {
   BarChart3,
   Settings,
   X,
+  FileQuestion,
+  Table2,
+  Eye,
 } from "lucide-react";
 
 const navItems = [
@@ -28,6 +31,9 @@ const navItems = [
   { href: "/course-assignments", label: "Course Assignments", icon: Link2 },
   { href: "/lecturers", label: "Lecturers", icon: UserCheck },
   { href: "/students", label: "Students", icon: Users },
+  { href: "/assessments", label: "Assessments", icon: FileQuestion },
+  { href: "/grades", label: "Grade Reports", icon: Table2 },
+  { href: "/content-monitoring", label: "Content Monitoring", icon: Eye },
   { href: "/academic-calendar", label: "Academic Calendar", icon: Calendar },
   { href: "/fees", label: "Fees", icon: CreditCard },
   { href: "/results", label: "Results", icon: ClipboardList },

@@ -1,7 +1,15 @@
 import { requireStudent } from "@/lib/auth";
 import { prisma } from "@repo/db";
-import { Card, CardContent, CardHeader, CardTitle, Badge } from "@repo/ui";
-import { BookOpen, User, Clock, AlertTriangle } from "lucide-react";
+import { Card, CardContent, Badge, Progress } from "@repo/ui";
+import {
+  BookOpen,
+  User,
+  Clock,
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  GraduationCap,
+} from "lucide-react";
 import Link from "next/link";
 
 export default async function CoursesPage() {
@@ -28,72 +36,204 @@ export default async function CoursesPage() {
                     user: { select: { fullName: true } },
                   },
                 },
+                materials: {
+                  where: { isPublished: true },
+                  select: { id: true },
+                },
+                testExams: {
+                  where: { isPublished: true },
+                  select: { id: true },
+                },
+                assignments: {
+                  where: { isPublished: true },
+                  select: { id: true },
+                },
               },
             },
+            grade: true,
           },
         })
       : [];
 
+    // Get material progress for all enrolled courses
+    const allMaterialIds = enrollments.flatMap((e) =>
+      e.courseAssignment.materials.map((m) => m.id)
+    );
+    const completedProgress =
+      allMaterialIds.length > 0
+        ? await prisma.courseMaterialProgress.findMany({
+            where: {
+              studentId: studentProfile.id,
+              courseMaterialId: { in: allMaterialIds },
+              completed: true,
+            },
+            select: { courseMaterialId: true },
+          })
+        : [];
+    const completedSet = new Set(
+      completedProgress.map((p) => p.courseMaterialId)
+    );
+
+    const coursesData = enrollments.map((enrollment) => {
+      const { courseAssignment, grade } = enrollment;
+      const { course, lecturer, materials, testExams, assignments } =
+        courseAssignment;
+      const totalMaterials = materials.length;
+      const completedMaterials = materials.filter((m) =>
+        completedSet.has(m.id)
+      ).length;
+      const progress =
+        totalMaterials > 0
+          ? Math.round((completedMaterials / totalMaterials) * 100)
+          : 0;
+
+      return {
+        id: courseAssignment.id,
+        code: course.code,
+        title: course.title,
+        description: course.description,
+        creditUnits: course.creditUnits,
+        semesterNumber: course.semesterNumber,
+        lecturer: {
+          name: lecturer.user.fullName,
+          title: lecturer.title,
+        },
+        progress,
+        totalMaterials,
+        completedMaterials,
+        totalTests: testExams.length,
+        totalAssignments: assignments.length,
+        grade: grade
+          ? {
+              letterGrade: grade.letterGrade,
+              totalScore: Number(grade.totalScore),
+            }
+          : null,
+        enrollmentStatus: enrollment.status,
+      };
+    });
+
+    // Color palette for course cards
+    const courseColors = [
+      "from-blue-600 to-blue-800",
+      "from-purple-600 to-purple-800",
+      "from-emerald-600 to-emerald-800",
+      "from-orange-600 to-orange-800",
+      "from-rose-600 to-rose-800",
+      "from-indigo-600 to-indigo-800",
+      "from-teal-600 to-teal-800",
+      "from-amber-600 to-amber-800",
+    ];
+
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">My Courses</h1>
-          <p className="text-muted-foreground">
-            {activeSemester
-              ? `${activeSemester.session.name} - ${activeSemester.name}`
-              : "No active semester"}
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">My Courses</h1>
+            <p className="text-muted-foreground text-sm">
+              {activeSemester
+                ? `${activeSemester.session.name} - ${activeSemester.name}`
+                : "No active semester"}
+              {enrollments.length > 0 &&
+                ` | ${enrollments.length} course${enrollments.length !== 1 ? "s" : ""} enrolled`}
+            </p>
+          </div>
         </div>
 
-        {enrollments.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <BookOpen className="mx-auto h-12 w-12 text-muted-foreground/50" />
-              <p className="mt-4 text-muted-foreground">
-                You are not enrolled in any courses this semester.
+        {coursesData.length === 0 ? (
+          <Card className="border-0 shadow-sm">
+            <CardContent className="py-16 text-center">
+              <BookOpen className="mx-auto h-14 w-14 text-muted-foreground/30" />
+              <p className="mt-4 text-lg font-medium text-muted-foreground">
+                No courses this semester
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground/70">
+                You are not enrolled in any courses for the current semester.
               </p>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {enrollments.map((enrollment) => {
-              const { course, lecturer } = enrollment.courseAssignment;
-              return (
-                <Link
-                  key={enrollment.id}
-                  href={`/courses/${enrollment.courseAssignment.id}`}
-                >
-                  <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <Badge variant="secondary" className="text-xs">
-                          {course.code}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          {course.creditUnits} units
-                        </Badge>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {coursesData.map((course, index) => (
+              <Link key={course.id} href={`/courses/${course.id}`}>
+                <Card className="h-full border-0 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group overflow-hidden">
+                  {/* Color header bar */}
+                  <div
+                    className={`h-2 bg-gradient-to-r ${courseColors[index % courseColors.length]}`}
+                  />
+                  <CardContent className="pt-5 pb-4">
+                    {/* Code and credits */}
+                    <div className="flex items-start justify-between mb-3">
+                      <Badge
+                        variant="secondary"
+                        className="text-xs font-semibold"
+                      >
+                        {course.code}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {course.creditUnits} CU
+                      </Badge>
+                    </div>
+
+                    {/* Title */}
+                    <h3 className="font-semibold text-gray-900 line-clamp-2 mb-3 group-hover:text-blue-600 transition-colors min-h-[40px]">
+                      {course.title}
+                    </h3>
+
+                    {/* Lecturer */}
+                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+                      <User className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">
+                        {course.lecturer.title
+                          ? `${course.lecturer.title} `
+                          : ""}
+                        {course.lecturer.name}
+                      </span>
+                    </div>
+
+                    {/* Progress */}
+                    <div className="mb-3">
+                      <div className="flex justify-between text-xs mb-1.5">
+                        <span className="text-gray-500">
+                          {course.completedMaterials}/{course.totalMaterials}{" "}
+                          completed
+                        </span>
+                        <span className="font-semibold text-blue-600">
+                          {course.progress}%
+                        </span>
                       </div>
-                      <CardTitle className="text-lg mt-2">{course.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          <span>
-                            {lecturer.title ? `${lecturer.title} ` : ""}
-                            {lecturer.user.fullName}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4" />
-                          <span>Semester {course.semesterNumber}</span>
-                        </div>
+                      <Progress value={course.progress} className="h-2" />
+                    </div>
+
+                    {/* Stats row */}
+                    <div className="flex items-center gap-3 text-xs text-gray-400 pt-3 border-t">
+                      <span className="flex items-center gap-1">
+                        <BookOpen className="h-3 w-3" />
+                        {course.totalMaterials} materials
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {course.totalTests} tests
+                      </span>
+                      {course.grade && (
+                        <span className="flex items-center gap-1 ml-auto font-semibold text-green-600">
+                          <GraduationCap className="h-3 w-3" />
+                          {course.grade.letterGrade}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Completion badge */}
+                    {course.progress === 100 && (
+                      <div className="flex items-center gap-1.5 mt-3 text-xs text-green-600 bg-green-50 rounded-lg px-3 py-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <span className="font-medium">Course completed</span>
                       </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
+                    )}
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
           </div>
         )}
       </div>
@@ -107,7 +247,9 @@ export default async function CoursesPage() {
         <Card className="border-destructive">
           <CardContent className="py-8 text-center">
             <AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-4" />
-            <p className="text-muted-foreground">Failed to load courses. Please refresh the page.</p>
+            <p className="text-muted-foreground">
+              Failed to load courses. Please refresh the page.
+            </p>
           </CardContent>
         </Card>
       </div>
