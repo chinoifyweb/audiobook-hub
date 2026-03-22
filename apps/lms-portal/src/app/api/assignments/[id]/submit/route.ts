@@ -13,7 +13,7 @@ export async function GET(
       where: { id: params.id },
       include: {
         courseAssignment: {
-          include: { course: { select: { code: true, title: true } } },
+          include: { course: { select: { id: true, code: true, title: true } } },
         },
         submissions: {
           where: { studentId: studentProfile.id },
@@ -26,12 +26,23 @@ export async function GET(
       return NextResponse.json({ error: "Assignment not found" }, { status: 404 });
     }
 
+    // Fetch sibling assignments in the same course for navigation
+    const siblingAssignments = await prisma.lmsAssignment.findMany({
+      where: {
+        courseAssignmentId: assignment.courseAssignmentId,
+        isPublished: true,
+      },
+      select: { id: true, title: true },
+      orderBy: { dueDate: "asc" },
+    });
+
     return NextResponse.json({
       assignment: {
         ...assignment,
         submission: assignment.submissions[0] || null,
         submissions: undefined,
       },
+      siblingAssignments,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Internal server error";

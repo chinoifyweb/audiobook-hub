@@ -18,6 +18,11 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@repo/ui";
 import {
   FileText,
@@ -35,6 +40,8 @@ import {
   ExternalLink,
   Mail,
   Calendar,
+  ArrowLeft,
+  ArrowRight,
 } from "lucide-react";
 import { PaymentGateClient } from "@/components/payment-gate-client";
 import { format, formatDistanceToNowStrict, differenceInSeconds } from "date-fns";
@@ -76,12 +83,18 @@ export default function AssignmentDetailPage() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [phase, setPhase] = useState<SubmissionPhase>("requirements");
+  const [siblings, setSiblings] = useState<{ id: string; title: string }[]>(
+    []
+  );
 
   useEffect(() => {
     fetch(`/api/assignments/${params.id}/submit`)
       .then((r) => r.json())
       .then((data) => {
         setAssignment(data.assignment);
+        if (data.siblingAssignments) {
+          setSiblings(data.siblingAssignments);
+        }
         if (data.assignment?.submission) {
           setPhase("submitted");
         }
@@ -660,7 +673,106 @@ export default function AssignmentDetailPage() {
             {error}
           </div>
         )}
+
+        {/* Activity Navigation */}
+        {siblings.length > 1 && (
+          <ActivityNavigation
+            currentId={assignment.id}
+            items={siblings}
+            basePath="/assignments"
+          />
+        )}
       </div>
     </PaymentGateClient>
+  );
+}
+
+/** Navigation between sibling activities (assignments/quizzes) */
+function ActivityNavigation({
+  currentId,
+  items,
+  basePath,
+}: {
+  currentId: string;
+  items: { id: string; title: string }[];
+  basePath: string;
+}) {
+  const router = useRouter();
+  const currentIndex = items.findIndex((item) => item.id === currentId);
+  const prevItem = currentIndex > 0 ? items[currentIndex - 1] : null;
+  const nextItem =
+    currentIndex < items.length - 1 ? items[currentIndex + 1] : null;
+
+  return (
+    <Card>
+      <CardContent className="py-4">
+        <div className="flex items-center justify-between gap-4">
+          {/* Previous */}
+          <div className="flex-1">
+            {prevItem ? (
+              <button
+                onClick={() => router.push(`${basePath}/${prevItem.id}`)}
+                className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition-colors group"
+              >
+                <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+                <div className="text-left min-w-0">
+                  <span className="text-xs text-gray-400 block">
+                    Previous Activity
+                  </span>
+                  <span className="truncate block font-medium">
+                    {prevItem.title}
+                  </span>
+                </div>
+              </button>
+            ) : (
+              <div />
+            )}
+          </div>
+
+          {/* Jump to dropdown */}
+          <div className="shrink-0">
+            <Select
+              value={currentId}
+              onValueChange={(value) => router.push(`${basePath}/${value}`)}
+            >
+              <SelectTrigger className="w-[160px] h-9 text-xs">
+                <SelectValue placeholder="Jump to..." />
+              </SelectTrigger>
+              <SelectContent>
+                {items.map((item, i) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    <span className="truncate">
+                      {i + 1}. {item.title}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Next */}
+          <div className="flex-1 flex justify-end">
+            {nextItem ? (
+              <button
+                onClick={() => router.push(`${basePath}/${nextItem.id}`)}
+                className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition-colors group"
+              >
+                <div className="text-right min-w-0">
+                  <span className="text-xs text-gray-400 block">
+                    Next Activity
+                  </span>
+                  <span className="truncate block font-medium">
+                    {nextItem.title}
+                  </span>
+                </div>
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            ) : (
+              <div />
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

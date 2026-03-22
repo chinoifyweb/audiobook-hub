@@ -694,6 +694,7 @@ model StudentProfile {
   tuitionPayments        TuitionPayment[]
   certificates           LmsCertificate[]
   materialProgress       CourseMaterialProgress[]
+  scholarshipApplications ScholarshipApplication[]
 
   @@index([programId])
   @@map("student_profiles")
@@ -972,6 +973,15 @@ model TuitionPayment {
   status                TuitionPaymentStatus @default(pending)
   paidAt                DateTime?            @map("paid_at")
   receiptUrl            String?              @map("receipt_url")
+  paymentMethod         String?              @default("paystack") @map("payment_method")
+  receiptUploadUrl      String?              @map("receipt_upload_url")
+  bankName              String?              @map("bank_name")
+  bankReference         String?              @map("bank_reference")
+  transferDate          DateTime?            @map("transfer_date")
+  adminNotes            String?              @map("admin_notes")
+  reviewedBy            String?              @map("reviewed_by")
+  installmentNumber     Int?                 @map("installment_number")
+  paymentPlan           String?              @default("full") @map("payment_plan")
   createdAt             DateTime             @default(now()) @map("created_at")
 
   student    StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
@@ -980,6 +990,29 @@ model TuitionPayment {
   @@index([studentId])
   @@index([tuitionFeeId])
   @@map("tuition_payments")
+}
+
+model ScholarshipApplication {
+  id                 String   @id @default(cuid())
+  studentId          String   @map("student_id")
+  scholarshipType    String   @map("scholarship_type")
+  statement          String?  @db.Text
+  churchName         String?  @map("church_name")
+  pastorName         String?  @map("pastor_name")
+  ministryYears      Int?     @map("ministry_years")
+  documents          Json?
+  status             String   @default("pending")
+  approvedPercentage Int?     @default(0) @map("approved_percentage")
+  adminNotes         String?  @map("admin_notes")
+  reviewedBy         String?  @map("reviewed_by")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([status])
+  @@map("scholarship_applications")
 }
 
 model LmsCertificate {

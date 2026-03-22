@@ -9,11 +9,16 @@ import {
   Flag,
   AlertTriangle,
   X,
+  ArrowLeft,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
 import { useTestStore, type TestQuestion } from "@/stores/test-store";
 import { PaymentGateClient } from "@/components/payment-gate-client";
 import { QuizTimer } from "@/components/lms/quiz-timer";
 import { QuizNav } from "@/components/lms/quiz-nav";
+
+type ViewMode = "questions" | "summary";
 
 export default function QuizTakePage() {
   const params = useParams();
@@ -23,6 +28,7 @@ export default function QuizTakePage() {
   const [totalDuration, setTotalDuration] = useState(0);
   const [flagged, setFlagged] = useState<Set<number>>(new Set());
   const [showConfirm, setShowConfirm] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("questions");
   const hasStarted = useRef(false);
 
   const {
@@ -136,6 +142,21 @@ export default function QuizTakePage() {
     startQuiz();
   }, [params.quizId, initTest]);
 
+  // Compute answered indices
+  const answeredIndices = new Set<number>();
+  questions.forEach((q, i) => {
+    const ans = answers.get(q.id);
+    if (
+      ans &&
+      (ans.selectedOption !== null ||
+        (ans.answerText && ans.answerText.trim()))
+    ) {
+      answeredIndices.add(i);
+    }
+  });
+
+  const unansweredCount = questions.length - answeredIndices.size;
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
@@ -201,19 +222,7 @@ export default function QuizTakePage() {
     ? answers.get(currentQuestion.id)
     : null;
 
-  const answeredIndices = new Set<number>();
-  questions.forEach((q, i) => {
-    const ans = answers.get(q.id);
-    if (
-      ans &&
-      (ans.selectedOption !== null ||
-        (ans.answerText && ans.answerText.trim()))
-    ) {
-      answeredIndices.add(i);
-    }
-  });
-
-  if (!currentQuestion) return null;
+  if (!currentQuestion && viewMode === "questions") return null;
 
   const hasAnswer =
     currentAnswer?.selectedOption !== null ||
@@ -221,6 +230,172 @@ export default function QuizTakePage() {
 
   const answerStatus = hasAnswer ? "Answer saved" : "Not yet answered";
 
+  // Summary view
+  if (viewMode === "summary") {
+    return (
+      <PaymentGateClient message="Complete your tuition payment to take quizzes and assessments.">
+        <div className="max-w-3xl mx-auto space-y-6">
+          {/* Header */}
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Summary of attempt</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Review your answers before submitting. You can click on any question to go back and change your answer.
+            </p>
+          </div>
+
+          {/* Timer still visible */}
+          <Card className="border shadow-sm">
+            <CardContent className="py-4">
+              <QuizTimer
+                timeRemainingSeconds={timeRemainingSeconds}
+                totalSeconds={totalDuration}
+                onTick={tick}
+                onTimeUp={handleTimeUp}
+                compact
+              />
+            </CardContent>
+          </Card>
+
+          {/* Question summary table */}
+          <Card className="border shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b">
+                    <th className="text-left px-4 py-3 font-semibold text-gray-700 w-20">
+                      #
+                    </th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                      Status
+                    </th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-700 w-20">
+                      Marks
+                    </th>
+                    <th className="text-right px-4 py-3 font-semibold text-gray-700 w-24">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {questions.map((q, i) => {
+                    const ans = answers.get(q.id);
+                    const isAnswered =
+                      ans &&
+                      (ans.selectedOption !== null ||
+                        (ans.answerText && ans.answerText.trim()));
+                    const isFlagged = flagged.has(i);
+
+                    return (
+                      <tr
+                        key={q.id}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="px-4 py-3">
+                          <span className="font-medium text-gray-900">
+                            {i + 1}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            {isAnswered ? (
+                              <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            ) : (
+                              <Circle className="h-4 w-4 text-gray-300" />
+                            )}
+                            <span
+                              className={
+                                isAnswered
+                                  ? "text-green-700"
+                                  : "text-gray-500"
+                              }
+                            >
+                              {isAnswered ? "Answered" : "Not yet answered"}
+                            </span>
+                            {isFlagged && (
+                              <Flag className="h-3 w-3 text-orange-500 fill-orange-500" />
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-gray-500">
+                          {q.points}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={() => {
+                              setCurrentQuestion(i);
+                              setViewMode("questions");
+                            }}
+                            className="text-xs text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                          >
+                            {isAnswered ? "Review" : "Answer"}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          {/* Unanswered warning */}
+          {unansweredCount > 0 && (
+            <div className="flex items-start gap-3 rounded-lg border border-orange-200 bg-orange-50 p-4">
+              <AlertTriangle className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-orange-800">
+                  You have {unansweredCount} unanswered question
+                  {unansweredCount !== 1 ? "s" : ""}
+                </p>
+                <p className="text-xs text-orange-600 mt-1">
+                  Unanswered questions will be scored as incorrect.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex items-center justify-between border-t pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setViewMode("questions")}
+              className="border-gray-300"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Return to attempt
+            </Button>
+            <Button
+              onClick={() => setShowConfirm(true)}
+              disabled={isSubmitting}
+              className="bg-gray-900 hover:bg-gray-800 text-white"
+            >
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Submit all and finish
+            </Button>
+          </div>
+
+          {/* Submit confirmation modal */}
+          {showConfirm && (
+            <SubmitConfirmModal
+              answeredCount={answeredIndices.size}
+              totalQuestions={questions.length}
+              unansweredCount={unansweredCount}
+              isSubmitting={isSubmitting}
+              onCancel={() => setShowConfirm(false)}
+              onConfirm={() => {
+                setShowConfirm(false);
+                submitQuiz();
+              }}
+            />
+          )}
+        </div>
+      </PaymentGateClient>
+    );
+  }
+
+  // Normal question view
   return (
     <PaymentGateClient message="Complete your tuition payment to take quizzes and assessments.">
     <div className="flex flex-col lg:flex-row gap-6 max-w-6xl mx-auto">
@@ -287,7 +462,7 @@ export default function QuizTakePage() {
                     {(currentQuestion.options as { text: string }[]).map(
                       (option, idx) => {
                         const isSelected = currentAnswer?.selectedOption === idx;
-                        const optionLetter = String.fromCharCode(97 + idx); // a, b, c, d...
+                        const optionLetter = String.fromCharCode(97 + idx);
 
                         return (
                           <label
@@ -326,7 +501,7 @@ export default function QuizTakePage() {
                   <p className="text-xs text-gray-500 mb-2">Select one:</p>
                   {["True", "False"].map((option, idx) => {
                     const isSelected = currentAnswer?.selectedOption === idx;
-                    const optionLetter = String.fromCharCode(97 + idx); // a, b
+                    const optionLetter = String.fromCharCode(97 + idx);
 
                     return (
                       <label
@@ -457,7 +632,7 @@ export default function QuizTakePage() {
         {/* Finish attempt button - always visible at bottom */}
         <div className="border-t pt-4">
           <Button
-            onClick={() => setShowConfirm(true)}
+            onClick={() => setViewMode("summary")}
             disabled={isSubmitting}
             variant="outline"
             className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-100"
@@ -519,7 +694,7 @@ export default function QuizTakePage() {
 
               {/* Finish attempt link in sidebar */}
               <button
-                onClick={() => setShowConfirm(true)}
+                onClick={() => setViewMode("summary")}
                 disabled={isSubmitting}
                 className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium transition-colors w-full text-left"
               >
@@ -538,66 +713,108 @@ export default function QuizTakePage() {
         </div>
       </div>
 
-      {/* Submit confirmation modal - exact reference design */}
+      {/* Submit confirmation modal */}
       {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <Card className="w-full max-w-sm mx-4 border-0 shadow-2xl rounded-xl overflow-hidden">
-            <CardContent className="p-0">
-              {/* Modal header */}
-              <div className="flex items-center justify-between px-5 py-4 border-b">
-                <h3 className="text-base font-bold text-gray-900">
-                  Submit all your answers and finish?
-                </h3>
-                <button
-                  onClick={() => setShowConfirm(false)}
-                  className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                >
-                  <X className="h-4 w-4 text-gray-400" />
-                </button>
-              </div>
-
-              {/* Modal body */}
-              <div className="px-5 py-5">
-                <p className="text-sm text-gray-600">
-                  Once you submit your answers, you won't be able to change them.
-                </p>
-
-                {answeredIndices.size < questions.length && (
-                  <p className="text-sm text-orange-600 mt-3">
-                    You have {questions.length - answeredIndices.size} unanswered
-                    question{questions.length - answeredIndices.size !== 1 ? "s" : ""}.
-                  </p>
-                )}
-              </div>
-
-              {/* Modal footer */}
-              <div className="flex items-center justify-end gap-3 px-5 py-4 border-t bg-gray-50">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowConfirm(false)}
-                  className="border-gray-300"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() => {
-                    setShowConfirm(false);
-                    submitQuiz();
-                  }}
-                  disabled={isSubmitting}
-                  className="bg-gray-900 hover:bg-gray-800 text-white"
-                >
-                  {isSubmitting && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Submit all and finish
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <SubmitConfirmModal
+          answeredCount={answeredIndices.size}
+          totalQuestions={questions.length}
+          unansweredCount={unansweredCount}
+          isSubmitting={isSubmitting}
+          onCancel={() => setShowConfirm(false)}
+          onConfirm={() => {
+            setShowConfirm(false);
+            submitQuiz();
+          }}
+        />
       )}
     </div>
     </PaymentGateClient>
+  );
+}
+
+// Shared submit confirmation modal component
+function SubmitConfirmModal({
+  answeredCount,
+  totalQuestions,
+  unansweredCount,
+  isSubmitting,
+  onCancel,
+  onConfirm,
+}: {
+  answeredCount: number;
+  totalQuestions: number;
+  unansweredCount: number;
+  isSubmitting: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <Card className="w-full max-w-sm mx-4 border-0 shadow-2xl rounded-xl overflow-hidden">
+        <CardContent className="p-0">
+          {/* Modal header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b">
+            <h3 className="text-base font-bold text-gray-900">
+              Submit all your answers and finish?
+            </h3>
+            <button
+              onClick={onCancel}
+              className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <X className="h-4 w-4 text-gray-400" />
+            </button>
+          </div>
+
+          {/* Modal body */}
+          <div className="px-5 py-5 space-y-3">
+            <p className="text-sm text-gray-600">
+              Once you submit your answers, you won't be able to change them.
+            </p>
+
+            {/* Summary stats */}
+            <div className="rounded-lg border bg-gray-50 p-3 space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Questions answered</span>
+                <span className="font-semibold text-gray-900">
+                  {answeredCount} out of {totalQuestions}
+                </span>
+              </div>
+            </div>
+
+            {unansweredCount > 0 && (
+              <div className="flex items-start gap-2 rounded-lg bg-orange-50 border border-orange-200 p-3">
+                <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
+                <p className="text-sm text-orange-700">
+                  You have {unansweredCount} unanswered question
+                  {unansweredCount !== 1 ? "s" : ""}. Unanswered questions will
+                  receive zero marks.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Modal footer */}
+          <div className="flex items-center justify-end gap-3 px-5 py-4 border-t bg-gray-50">
+            <Button
+              variant="outline"
+              onClick={onCancel}
+              className="border-gray-300"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={onConfirm}
+              disabled={isSubmitting}
+              className="bg-gray-900 hover:bg-gray-800 text-white"
+            >
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Submit all and finish
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -39,6 +39,8 @@ const navItems = [
   { href: "/content-monitoring", label: "Content Monitoring", icon: Eye },
   { href: "/academic-calendar", label: "Academic Calendar", icon: Calendar },
   { href: "/fees", label: "Fees", icon: CreditCard },
+  { href: "/payments", label: "Payments", icon: CreditCard },
+  { href: "/scholarships", label: "Scholarships", icon: GraduationCap },
   { href: "/results", label: "Results", icon: ClipboardCheck },
   { href: "/certificates", label: "Certificates", icon: Award },
   { href: "/library", label: "E-Library", icon: Library },

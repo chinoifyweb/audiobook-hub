@@ -8,6 +8,8 @@ interface QuizTimerProps {
   totalSeconds: number;
   onTick: () => void;
   onTimeUp: () => void;
+  /** Show a compact inline timer instead of circular dials */
+  compact?: boolean;
 }
 
 function CircularDial({
@@ -91,6 +93,7 @@ export function QuizTimer({
   totalSeconds,
   onTick,
   onTimeUp,
+  compact = false,
 }: QuizTimerProps) {
   useEffect(() => {
     if (timeRemainingSeconds <= 0) {
@@ -115,6 +118,25 @@ export function QuizTimer({
   const minuteColor = isCritical ? "red" : isLow ? "orange" : "green";
   const secondColor = isCritical ? "red" : isLow ? "orange" : "blue";
   const hourColor = isCritical ? "red" : isLow ? "orange" : "green";
+
+  if (compact) {
+    const timeStr = hours > 0
+      ? `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+      : `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    return (
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-gray-700">Time Remaining</span>
+        <span
+          className={cn(
+            "text-lg font-mono font-bold",
+            isCritical ? "text-red-600 animate-pulse" : isLow ? "text-orange-600" : "text-blue-700"
+          )}
+        >
+          {timeStr}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">

@@ -58,7 +58,26 @@ export async function checkPaymentStatus(
     },
   });
 
-  const amountDue = tuitionFee?.amount ?? student.program.tuitionPerSemester ?? 0;
+  const rawAmountDue = tuitionFee?.amount ?? student.program.tuitionPerSemester ?? 0;
+
+  // Check for approved scholarship discount
+  const approvedScholarship = await prisma.$queryRaw<
+    Array<{ approved_percentage: number }>
+  >`
+    SELECT approved_percentage
+    FROM scholarship_applications
+    WHERE student_id = ${studentId}
+    AND status = 'approved'
+    AND approved_percentage > 0
+    ORDER BY created_at DESC
+    LIMIT 1
+  `;
+
+  const scholarshipDiscount = approvedScholarship.length > 0
+    ? Math.round(rawAmountDue * (approvedScholarship[0].approved_percentage / 100))
+    : 0;
+
+  const amountDue = rawAmountDue - scholarshipDiscount;
 
   // Get all successful payments for this student for this fee
   const payments = tuitionFee
@@ -73,8 +92,8 @@ export async function checkPaymentStatus(
 
   const amountPaid = payments.reduce((sum, p) => sum + p.amount, 0);
 
-  // Check for scholarship/waiver - look for a payment with "scholarship" or "waiver" in the reference
-  const hasScholarship = payments.some(
+  // Check for scholarship/waiver
+  const hasScholarship = approvedScholarship.length > 0 || payments.some(
     (p) =>
       p.paystackReference?.toLowerCase().includes("scholarship") ||
       p.paystackReference?.toLowerCase().includes("waiver") ||
@@ -82,10 +101,12 @@ export async function checkPaymentStatus(
   );
 
   const balance = Math.max(0, amountDue - amountPaid);
-  const hasPaid = balance === 0 && amountDue > 0;
+  // 100% scholarship = immediate access
+  const fullScholarship = approvedScholarship.length > 0 && approvedScholarship[0].approved_percentage >= 100;
+  const hasPaid = (balance === 0 && amountDue > 0) || fullScholarship;
 
   return {
-    hasPaid: hasPaid || hasScholarship,
+    hasPaid: hasPaid || (hasScholarship && balance === 0),
     hasScholarship,
     amountDue,
     amountPaid,
