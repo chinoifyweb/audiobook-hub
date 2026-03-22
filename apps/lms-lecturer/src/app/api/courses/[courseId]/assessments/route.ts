@@ -14,6 +14,45 @@ export async function GET(
     const lecturer = await requireLecturer();
     await verifyLecturerCourseAccess(lecturer.id, params.courseId);
 
+    // Support fetching single assessment by ID
+    const { searchParams } = new URL(request.url);
+    const assessmentId = searchParams.get("assessmentId");
+
+    if (assessmentId) {
+      const testExam = await prisma.testExam.findUnique({
+        where: { id: assessmentId },
+        include: {
+          courseAssignment: {
+            include: {
+              course: true,
+              enrollments: { where: { status: "enrolled" } },
+            },
+          },
+          questions: {
+            include: { question: true },
+            orderBy: { sortOrder: "asc" },
+          },
+          attempts: {
+            include: {
+              student: {
+                include: { user: { select: { fullName: true, email: true } } },
+              },
+              answers: {
+                include: { question: true },
+              },
+            },
+            orderBy: { startedAt: "desc" },
+          },
+        },
+      });
+
+      if (!testExam || testExam.courseAssignmentId !== params.courseId) {
+        return NextResponse.json({ error: "Assessment not found" }, { status: 404 });
+      }
+
+      return NextResponse.json(testExam);
+    }
+
     const tests = await prisma.testExam.findMany({
       where: { courseAssignmentId: params.courseId },
       include: {

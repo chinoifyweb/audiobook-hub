@@ -23,6 +23,8 @@ import {
   Table2,
   Video,
   BarChart3,
+  Pencil,
+  Eye,
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -82,6 +84,13 @@ export default async function CourseDetailPage({ params }: Props) {
   if (!courseAssignment) notFound();
 
   const { course, materials, assignments, testExams, enrollments, semester } = courseAssignment;
+
+  /** Helper to get material type icon class */
+  function getTypeIcon(type: string) {
+    if (type === "youtube_video" || type === "video") return "text-red-500";
+    if (type === "pdf" || type === "document" || type === "ebook") return "text-blue-500";
+    return "text-green-500";
+  }
 
   return (
     <div className="space-y-6">
@@ -167,11 +176,18 @@ export default async function CourseDetailPage({ params }: Props) {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Course Materials</CardTitle>
-              <Link href={`/materials/${params.id}/new`}>
-                <Button size="sm" className="gap-1.5">
-                  <Plus className="h-4 w-4" /> Add Material
-                </Button>
-              </Link>
+              <div className="flex gap-2">
+                <Link href={`/courses/${params.id}/content`}>
+                  <Button size="sm" variant="outline" className="gap-1.5">
+                    <Pencil className="h-4 w-4" /> Manage Content
+                  </Button>
+                </Link>
+                <Link href={`/materials/${params.id}/new`}>
+                  <Button size="sm" className="gap-1.5">
+                    <Plus className="h-4 w-4" /> Add Material
+                  </Button>
+                </Link>
+              </div>
             </CardHeader>
             <CardContent>
               {materials.length === 0 ? (
@@ -187,6 +203,15 @@ export default async function CourseDetailPage({ params }: Props) {
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
+                          {(material.type === "youtube_video" || material.type === "video") && (
+                            <Video className={`h-4 w-4 ${getTypeIcon(material.type)}`} />
+                          )}
+                          {(material.type === "pdf" || material.type === "document" || material.type === "ebook") && (
+                            <FileText className={`h-4 w-4 ${getTypeIcon(material.type)}`} />
+                          )}
+                          {material.type === "link" && (
+                            <ExternalLink className="h-4 w-4 text-green-500" />
+                          )}
                           <p className="text-sm font-medium">{material.title}</p>
                           <Badge variant="outline" className="text-xs capitalize">
                             {material.type.replace("_", " ")}
@@ -197,19 +222,21 @@ export default async function CourseDetailPage({ params }: Props) {
                         </div>
                         {material.description && (
                           <p className="text-xs text-muted-foreground line-clamp-1">
-                            {material.description}
+                            {material.description.replace(/^\[Session:[^\]]*\]\s*/, "")}
                           </p>
                         )}
                       </div>
-                      <a
-                        href={material.contentUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Button size="sm" variant="ghost">
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                      </a>
+                      <div className="flex items-center gap-1">
+                        <a
+                          href={material.contentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Button size="sm" variant="ghost" title="Open in new tab">
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </a>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -265,11 +292,13 @@ export default async function CourseDetailPage({ params }: Props) {
                             <span>{graded}/{total} graded</span>
                           </div>
                         </div>
-                        <Link href={`/assignments/${assignment.id}/submissions`}>
-                          <Button size="sm" variant="outline">
-                            View Submissions
-                          </Button>
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          <Link href={`/assignments/${assignment.id}/submissions`}>
+                            <Button size="sm" variant="outline">
+                              View Submissions
+                            </Button>
+                          </Link>
+                        </div>
                       </div>
                     );
                   })}
@@ -284,11 +313,18 @@ export default async function CourseDetailPage({ params }: Props) {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Tests & Exams</CardTitle>
-              <Link href={`/tests/new?courseId=${params.id}`}>
-                <Button size="sm" className="gap-1.5">
-                  <Plus className="h-4 w-4" /> Create Test
-                </Button>
-              </Link>
+              <div className="flex gap-2">
+                <Link href={`/courses/${params.id}/assessments/new`}>
+                  <Button size="sm" className="gap-1.5">
+                    <Plus className="h-4 w-4" /> Create Assessment
+                  </Button>
+                </Link>
+                <Link href={`/tests/new?courseId=${params.id}`}>
+                  <Button size="sm" variant="outline" className="gap-1.5">
+                    <Plus className="h-4 w-4" /> From Question Bank
+                  </Button>
+                </Link>
+              </div>
             </CardHeader>
             <CardContent>
               {testExams.length === 0 ? (
@@ -337,11 +373,18 @@ export default async function CourseDetailPage({ params }: Props) {
                             <span>{te.attempts.length} attempts</span>
                           </div>
                         </div>
-                        <Link href={`/tests/${te.id}/attempts`}>
-                          <Button size="sm" variant="outline">
-                            View Attempts
-                          </Button>
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          <Link href={`/courses/${params.id}/assessments/${te.id}`}>
+                            <Button size="sm" variant="ghost" title="View details">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                          <Link href={`/tests/${te.id}/attempts`}>
+                            <Button size="sm" variant="outline">
+                              View Attempts
+                            </Button>
+                          </Link>
+                        </div>
                       </div>
                     );
                   })}

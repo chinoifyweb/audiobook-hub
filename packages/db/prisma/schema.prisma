@@ -115,6 +115,7 @@ model User {
   gradedSubmissions   AssignmentSubmission[] @relation("GradedBy")
   gradedAttempts      TestExamAttempt[] @relation("GradedAttemptBy")
   releasedGrades      Grade[] @relation("ReleasedBy")
+  libraryBooks        LibraryBook[]
 
   @@map("users")
 }
@@ -427,6 +428,7 @@ enum EnrollmentStatus {
 
 enum CourseMaterialType {
   youtube_video
+  video
   pdf
   ebook
   link
@@ -1012,4 +1014,35 @@ model AcademicCalendarEvent {
 
   @@index([semesterId])
   @@map("academic_calendar_events")
+}
+
+model LibraryBook {
+  id              String   @id @default(cuid())
+  title           String
+  author          String
+  description     String?  @db.Text
+  category        String
+  subcategory     String?
+  coverImageUrl   String?  @map("cover_image_url")
+  fileUrl         String   @map("file_url")
+  fileType        String   @map("file_type")
+  fileSize        BigInt   @map("file_size")
+  isbn            String?
+  publisher       String?
+  publicationYear Int?     @map("publication_year")
+  language        String   @default("English")
+  tags            String[] @default([])
+  downloadCount   Int      @default(0) @map("download_count")
+  isPublic        Boolean  @default(true) @map("is_public")
+  isActive        Boolean  @default(true) @map("is_active")
+  uploadedBy      String   @map("uploaded_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  uploader User @relation(fields: [uploadedBy], references: [id])
+
+  @@index([category])
+  @@index([uploadedBy])
+  @@index([isActive, isPublic])
+  @@map("library_books")
 }

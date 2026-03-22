@@ -98,25 +98,31 @@ function NewAssignmentPageContent() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">Assignment Brief</Label>
               <textarea
                 id="description"
                 className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="Brief description of the assignment"
+                placeholder="e.g., Write a 2,000-word essay analyzing the historical context of the Book of Genesis."
               />
+              <p className="text-xs text-muted-foreground">
+                A short summary of what the assignment is about. This is shown to students in the assignment list.
+              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="instructions">Instructions</Label>
+              <Label htmlFor="instructions">Assignment Instructions</Label>
               <textarea
                 id="instructions"
                 className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 value={form.instructions}
                 onChange={(e) => setForm({ ...form, instructions: e.target.value })}
-                placeholder="Detailed instructions for students..."
+                placeholder="e.g., 1. Research the historical context using at least 3 scholarly sources.&#10;2. Structure your essay with an introduction, body, and conclusion.&#10;3. Include proper citations in APA format.&#10;4. Submit as a PDF or DOCX file."
               />
+              <p className="text-xs text-muted-foreground">
+                Detailed step-by-step instructions for students. Include requirements, formatting guidelines, and submission expectations.
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

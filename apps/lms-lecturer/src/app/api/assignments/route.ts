@@ -111,6 +111,52 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function PATCH(request: NextRequest) {
+  try {
+    const lecturer = await requireLecturer();
+    const body = await request.json();
+
+    const { id, ...updates } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "Assignment id required" }, { status: 400 });
+    }
+
+    const assignment = await prisma.lmsAssignment.findUnique({
+      where: { id },
+      include: { courseAssignment: true },
+    });
+
+    if (!assignment) {
+      return NextResponse.json({ error: "Assignment not found" }, { status: 404 });
+    }
+
+    if (assignment.courseAssignment.lecturerId !== lecturer.id) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    }
+
+    const data: Record<string, unknown> = {};
+    if (updates.title !== undefined) data.title = updates.title;
+    if (updates.description !== undefined) data.description = updates.description || null;
+    if (updates.instructions !== undefined) data.instructions = updates.instructions || null;
+    if (updates.dueDate !== undefined) data.dueDate = new Date(updates.dueDate);
+    if (updates.maxScore !== undefined) data.maxScore = updates.maxScore;
+    if (updates.fileRequired !== undefined) data.fileRequired = updates.fileRequired;
+    if (updates.allowLateSubmission !== undefined) data.allowLateSubmission = updates.allowLateSubmission;
+    if (updates.isPublished !== undefined) data.isPublished = updates.isPublished;
+
+    const updated = await prisma.lmsAssignment.update({
+      where: { id },
+      data,
+    });
+
+    return NextResponse.json(updated);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Server error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     const lecturer = await requireLecturer();

@@ -15,8 +15,12 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "@repo/ui";
-import { Plus, Trash2, ArrowLeft, Loader2, Check } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, Loader2, Check, Pencil } from "lucide-react";
 import Link from "next/link";
 
 interface Props {
@@ -144,9 +148,62 @@ export default function QuestionBankDetailPage({ params }: Props) {
     }
   }
 
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [editForm, setEditForm] = useState({
+    questionText: "",
+    correctAnswer: "",
+    options: [] as QuestionOption[],
+    points: 1,
+  });
+  const [editLoading, setEditLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState<Set<string>>(new Set());
+
+  function startEdit(q: Question) {
+    setEditingQuestion(q);
+    setEditForm({
+      questionText: q.questionText,
+      correctAnswer: q.correctAnswer || "",
+      options: q.options ? [...(q.options as QuestionOption[])] : [],
+      points: q.points,
+    });
+  }
+
+  async function handleEditQuestion(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingQuestion) return;
+    setEditLoading(true);
+    setError("");
+    try {
+      const body: Record<string, unknown> = {
+        id: editingQuestion.id,
+        questionText: editForm.questionText,
+        points: editForm.points,
+      };
+      if (editingQuestion.questionType === "mcq" || editingQuestion.questionType === "true_false") {
+        body.options = editForm.options;
+        body.correctAnswer = editForm.options.find((o) => o.isCorrect)?.text || "";
+      } else {
+        body.correctAnswer = editForm.correctAnswer;
+      }
+      const res = await fetch("/api/questions", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      setEditingQuestion(null);
+      await fetchBank();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to update question");
+    } finally {
+      setEditLoading(false);
+    }
+  }
+
   async function handleDeleteQuestion(questionId: string) {
     if (!confirm("Delete this question?")) return;
 
+    setDeleteLoading((prev) => new Set(prev).add(questionId));
     try {
       const res = await fetch(`/api/questions?id=${questionId}`, {
         method: "DELETE",
@@ -155,6 +212,12 @@ export default function QuestionBankDetailPage({ params }: Props) {
       await fetchBank();
     } catch {
       setError("Failed to delete question");
+    } finally {
+      setDeleteLoading((prev) => {
+        const next = new Set(prev);
+        next.delete(questionId);
+        return next;
+      });
     }
   }
 
@@ -437,14 +500,30 @@ export default function QuestionBankDetailPage({ params }: Props) {
                         </p>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => handleDeleteQuestion(q.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => startEdit(q)}
+                        title="Edit question"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        disabled={deleteLoading.has(q.id)}
+                        onClick={() => handleDeleteQuestion(q.id)}
+                      >
+                        {deleteLoading.has(q.id) ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -452,6 +531,121 @@ export default function QuestionBankDetailPage({ params }: Props) {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Question Dialog */}
+      {editingQuestion && (
+        <Dialog open={!!editingQuestion} onOpenChange={() => setEditingQuestion(null)}>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Question</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleEditQuestion} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Question Text</Label>
+                <textarea
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={editForm.questionText}
+                  onChange={(e) => setEditForm({ ...editForm, questionText: e.target.value })}
+                  required
+                />
+              </div>
+
+              {(editingQuestion.questionType === "mcq") && (
+                <div className="space-y-2">
+                  <Label className="text-xs">Options (select correct answer)</Label>
+                  {editForm.options.map((opt, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="editQCorrect"
+                        checked={opt.isCorrect}
+                        onChange={() => {
+                          const opts = editForm.options.map((o, idx) => ({
+                            ...o,
+                            isCorrect: idx === i,
+                          }));
+                          setEditForm({ ...editForm, options: opts });
+                        }}
+                        className="h-4 w-4"
+                      />
+                      <Input
+                        value={opt.text}
+                        onChange={(e) => {
+                          const opts = [...editForm.options];
+                          opts[i] = { ...opts[i], text: e.target.value };
+                          setEditForm({ ...editForm, options: opts });
+                        }}
+                        className="h-8 text-sm"
+                      />
+                      {opt.isCorrect && (
+                        <Badge className="text-xs bg-green-100 text-green-700 shrink-0">Correct</Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {editingQuestion.questionType === "true_false" && (
+                <div className="space-y-2">
+                  <Label className="text-xs">Correct Answer</Label>
+                  <div className="flex gap-4">
+                    {editForm.options.map((opt, i) => (
+                      <label key={i} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="editQTF"
+                          checked={opt.isCorrect}
+                          onChange={() => {
+                            const opts = editForm.options.map((o, idx) => ({
+                              ...o,
+                              isCorrect: idx === i,
+                            }));
+                            setEditForm({ ...editForm, options: opts });
+                          }}
+                          className="h-4 w-4"
+                        />
+                        <span className="text-sm">{opt.text}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(editingQuestion.questionType === "short_answer" ||
+                editingQuestion.questionType === "fill_in_the_blank") && (
+                <div className="space-y-2">
+                  <Label>Correct Answer</Label>
+                  <Input
+                    value={editForm.correctAnswer}
+                    onChange={(e) => setEditForm({ ...editForm, correctAnswer: e.target.value })}
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Points</Label>
+                <Input
+                  type="number"
+                  value={editForm.points}
+                  onChange={(e) => setEditForm({ ...editForm, points: parseInt(e.target.value) || 1 })}
+                  min={1}
+                  className="w-24"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button type="submit" disabled={editLoading}>
+                  {editLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Changes
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setEditingQuestion(null)}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

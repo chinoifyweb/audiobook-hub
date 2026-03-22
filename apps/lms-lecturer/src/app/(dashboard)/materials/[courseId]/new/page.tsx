@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -16,8 +16,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Upload, FileUp } from "lucide-react";
 import Link from "next/link";
+import { uploadFileToStorage } from "@/lib/supabase";
+
+const FILE_ACCEPTS: Record<string, string> = {
+  video: ".mp4,.webm,.mov,.avi,.mkv",
+  pdf: ".pdf",
+  document: ".pdf,.docx,.pptx,.doc,.ppt,.xlsx,.xls,.txt",
+  ebook: ".epub,.pdf,.mobi",
+};
 
 interface Props {
   params: { courseId: string };
@@ -27,6 +35,9 @@ export default function NewMaterialPage({ params }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -35,6 +46,39 @@ export default function NewMaterialPage({ params }: Props) {
     sortOrder: 0,
     isPublished: true,
   });
+
+  const isUploadableType = ["video", "pdf", "document", "ebook"].includes(form.type);
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadProgress(0);
+    setError("");
+
+    try {
+      const progressInterval = setInterval(() => {
+        setUploadProgress((prev) => Math.min(prev + 10, 90));
+      }, 200);
+
+      const publicUrl = await uploadFileToStorage(file, params.courseId);
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      setForm((prev) => ({ ...prev, contentUrl: publicUrl }));
+
+      if (!form.title) {
+        const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+        setForm((prev) => ({ ...prev, title: nameWithoutExt, contentUrl: publicUrl }));
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setIsUploading(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -117,20 +161,78 @@ export default function NewMaterialPage({ params }: Props) {
               <Label>Material Type</Label>
               <Select
                 value={form.type}
-                onValueChange={(val) => setForm({ ...form, type: val })}
+                onValueChange={(val) => {
+                  setForm({ ...form, type: val, contentUrl: "" });
+                  setUploadProgress(0);
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="youtube_video">YouTube Video</SelectItem>
-                  <SelectItem value="pdf">PDF</SelectItem>
-                  <SelectItem value="ebook">Ebook</SelectItem>
-                  <SelectItem value="document">Document</SelectItem>
+                  <SelectItem value="video">Video (Upload)</SelectItem>
+                  <SelectItem value="pdf">PDF (Upload)</SelectItem>
+                  <SelectItem value="ebook">Ebook (Upload)</SelectItem>
+                  <SelectItem value="document">Document (Upload)</SelectItem>
                   <SelectItem value="link">External Link</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {/* File upload for uploadable types */}
+            {isUploadableType && (
+              <div className="space-y-3">
+                <Label>Upload File</Label>
+                <div
+                  className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={FILE_ACCEPTS[form.type] || "*"}
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  {isUploading ? (
+                    <div className="space-y-2">
+                      <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                      <p className="text-sm text-muted-foreground">Uploading... {uploadProgress}%</p>
+                      <div className="w-full bg-muted rounded-full h-2 max-w-xs mx-auto">
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  ) : form.contentUrl ? (
+                    <div className="space-y-1">
+                      <FileUp className="h-8 w-8 mx-auto text-green-600" />
+                      <p className="text-sm text-green-600 font-medium">File uploaded successfully</p>
+                      <p className="text-xs text-muted-foreground truncate max-w-sm mx-auto">
+                        {form.contentUrl.split("/").pop()}
+                      </p>
+                      <p className="text-xs text-primary mt-1">Click to replace</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">Click to select a file</p>
+                      <p className="text-xs text-muted-foreground">
+                        Accepted: {FILE_ACCEPTS[form.type]?.replace(/\./g, "").replace(/,/g, ", ") || "Any"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex-1 h-px bg-border" />
+                  <span>or paste a URL directly</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="contentUrl">
@@ -138,7 +240,7 @@ export default function NewMaterialPage({ params }: Props) {
                   ? "YouTube URL"
                   : form.type === "link"
                   ? "External URL"
-                  : "File URL (Supabase Storage URL)"}
+                  : "File URL"}
               </Label>
               <Input
                 id="contentUrl"
@@ -182,7 +284,7 @@ export default function NewMaterialPage({ params }: Props) {
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading || isUploading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Add Material
               </Button>

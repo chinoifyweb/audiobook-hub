@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui";
-import { Loader2, ArrowLeft, Plus, Trash2, GripVertical } from "lucide-react";
+import { Loader2, ArrowLeft, Plus, Trash2, GripVertical, Info } from "lucide-react";
 import Link from "next/link";
 
 interface QuestionDraft {
@@ -212,6 +212,20 @@ export default function NewAssessmentPage({ params }: Props) {
         </div>
       </div>
 
+      {/* Info Banner */}
+      <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 flex items-start gap-3">
+        <Info className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+        <div className="text-sm text-blue-800">
+          <p className="font-medium mb-1">Tips for creating assessments</p>
+          <ul className="list-disc pl-4 space-y-0.5 text-blue-700">
+            <li>Review all questions carefully before publishing. You can edit questions after creation.</li>
+            <li>Set the open and close date/time to control when students can access the assessment.</li>
+            <li>Use &quot;Shuffle questions&quot; to randomize the order for each student.</li>
+            <li>Keep the assessment unpublished until you are ready for students to see it.</li>
+          </ul>
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {error && (
           <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
@@ -234,6 +248,9 @@ export default function NewAssessmentPage({ params }: Props) {
                   placeholder="e.g., CA Test 1"
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  A clear name students will see, e.g. &quot;Mid-term Test&quot; or &quot;Quiz 3&quot;.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Type</Label>
@@ -249,19 +266,25 @@ export default function NewAssessmentPage({ params }: Props) {
                     <SelectItem value="exam">Exam</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  &quot;Test&quot; is for continuous assessment. &quot;Exam&quot; is for final examinations.
+                </p>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Description / Instructions</Label>
+              <Label>Description / Instructions for Students</Label>
               <textarea
                 className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.description}
                 onChange={(e) =>
                   setForm({ ...form, description: e.target.value })
                 }
-                placeholder="Instructions for students..."
+                placeholder="e.g., Answer all questions. Each question carries the mark indicated beside it. No external resources allowed."
               />
+              <p className="text-xs text-muted-foreground">
+                Instructions shown to students before they begin the assessment.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -283,6 +306,9 @@ export default function NewAssessmentPage({ params }: Props) {
                   }
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  When students can start the assessment. They cannot access it before this time.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Close Date/Time</Label>
@@ -294,6 +320,9 @@ export default function NewAssessmentPage({ params }: Props) {
                   }
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Deadline for submissions. Students cannot start after this time.
+                </p>
               </div>
             </div>
 
@@ -310,8 +339,12 @@ export default function NewAssessmentPage({ params }: Props) {
                     })
                   }
                   min={1}
+                  placeholder="e.g., 60"
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  How long each student has once they start. e.g., 30 = 30 minutes, 120 = 2 hours.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Pass Mark (%)</Label>
@@ -326,7 +359,11 @@ export default function NewAssessmentPage({ params }: Props) {
                   }
                   min={0}
                   max={100}
+                  placeholder="e.g., 40"
                 />
+                <p className="text-xs text-muted-foreground">
+                  The minimum percentage score to pass. e.g., 40 means students need at least 40% to pass.
+                </p>
               </div>
             </div>
 
@@ -344,6 +381,9 @@ export default function NewAssessmentPage({ params }: Props) {
                 <Label htmlFor="shuffle" className="font-normal">
                   Shuffle question order
                 </Label>
+                <span className="text-xs text-muted-foreground ml-1">
+                  - Each student sees questions in a different random order
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <input
@@ -361,6 +401,9 @@ export default function NewAssessmentPage({ params }: Props) {
                 <Label htmlFor="showResults" className="font-normal">
                   Show results to students immediately
                 </Label>
+                <span className="text-xs text-muted-foreground ml-1">
+                  - Students see their score right after submission
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <input
@@ -375,6 +418,9 @@ export default function NewAssessmentPage({ params }: Props) {
                 <Label htmlFor="publish" className="font-normal">
                   Publish immediately (visible to students)
                 </Label>
+                <span className="text-xs text-muted-foreground ml-1">
+                  - Uncheck to save as draft and publish later
+                </span>
               </div>
             </div>
           </CardContent>
@@ -423,9 +469,14 @@ export default function NewAssessmentPage({ params }: Props) {
           </CardHeader>
           <CardContent>
             {questions.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                No questions added. Use the buttons above to add questions.
-              </p>
+              <div className="text-center py-8 space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  No questions added yet. Use the buttons above to add questions.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  MCQ = Multiple Choice (4 options, 1 correct) | T/F = True or False | Fill Blank = Student types the answer
+                </p>
+              </div>
             ) : (
               <div className="space-y-4">
                 {questions.map((q, idx) => (
@@ -476,14 +527,18 @@ export default function NewAssessmentPage({ params }: Props) {
                               questionText: e.target.value,
                             })
                           }
-                          placeholder="Enter your question here..."
+                          placeholder={
+                            q.questionType === "fill_in_the_blank"
+                              ? "e.g., The capital of Israel is _____."
+                              : "Enter your question here..."
+                          }
                         />
 
                         {/* MCQ Options */}
                         {q.questionType === "mcq" && (
                           <div className="space-y-2">
                             <Label className="text-xs">
-                              Options (click radio to mark correct)
+                              Options (click radio to mark correct answer)
                             </Label>
                             {q.options.map((opt, optIdx) => (
                               <div
@@ -528,7 +583,7 @@ export default function NewAssessmentPage({ params }: Props) {
                         {q.questionType === "true_false" && (
                           <div className="space-y-2">
                             <Label className="text-xs">
-                              Correct answer:
+                              Select the correct answer:
                             </Label>
                             <div className="flex gap-4">
                               {q.options.map((opt, optIdx) => (
@@ -558,7 +613,7 @@ export default function NewAssessmentPage({ params }: Props) {
                         {q.questionType === "fill_in_the_blank" && (
                           <div className="space-y-2">
                             <Label className="text-xs">
-                              Correct answer(s) — separate multiple accepted
+                              Correct answer(s) - separate multiple accepted
                               answers with commas
                             </Label>
                             <Input
@@ -571,6 +626,9 @@ export default function NewAssessmentPage({ params }: Props) {
                               placeholder="e.g., Jerusalem, jerusalem"
                               className="h-8 text-sm"
                             />
+                            <p className="text-xs text-muted-foreground">
+                              Use commas to accept multiple correct answers. Matching is case-insensitive.
+                            </p>
                           </div>
                         )}
                       </div>

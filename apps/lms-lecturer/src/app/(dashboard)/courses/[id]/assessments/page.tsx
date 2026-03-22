@@ -16,6 +16,8 @@ import {
   Users,
   CheckCircle,
   AlertCircle,
+  Pencil,
+  Eye,
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -182,12 +184,12 @@ export default async function CourseAssessmentsPage({ params }: Props) {
 
                     <div className="flex flex-col gap-2 shrink-0">
                       <Link href={`/courses/${params.id}/assessments/${te.id}`}>
-                        <Button size="sm" variant="outline">
-                          View Details
+                        <Button size="sm" variant="outline" className="gap-1.5 w-full">
+                          <Eye className="h-3.5 w-3.5" /> View Details
                         </Button>
                       </Link>
                       <Link href={`/tests/${te.id}/attempts`}>
-                        <Button size="sm" variant="ghost">
+                        <Button size="sm" variant="ghost" className="w-full">
                           View Attempts
                         </Button>
                       </Link>
