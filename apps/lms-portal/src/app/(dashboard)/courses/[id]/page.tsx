@@ -11,6 +11,7 @@ import {
   type StudySession,
   type CourseAssessment,
 } from "@/components/lms";
+import { PaymentGateClient } from "@/components/payment-gate-client";
 import { Badge, Card, CardContent, Button, Progress, Separator } from "@repo/ui";
 import {
   ArrowLeft,
@@ -248,6 +249,7 @@ export default function CourseDetailPage() {
   };
 
   return (
+    <PaymentGateClient message="Complete your tuition payment to access course materials, lectures, and assessments.">
     <div className="flex h-[calc(100vh-4rem)] -m-4 sm:-m-6">
       {/* Course Sidebar */}
       <CourseSidebar
@@ -342,6 +344,7 @@ export default function CourseDetailPage() {
         </div>
       </div>
     </div>
+    </PaymentGateClient>
   );
 }
 

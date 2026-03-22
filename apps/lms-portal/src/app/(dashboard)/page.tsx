@@ -1,5 +1,7 @@
 import { requireStudent } from "@/lib/auth";
 import { prisma } from "@repo/db";
+import { checkCurrentSemesterPayment } from "@/lib/payment-status";
+import { PaymentBanner } from "@/components/payment-gate";
 import { Card, CardContent, CardHeader, CardTitle, Badge, Progress } from "@repo/ui";
 import {
   BookOpen,
@@ -30,6 +32,7 @@ export default async function DashboardPage() {
       recentGrades,
       allGrades,
       calendarEvents,
+      paymentStatus,
     ] = await Promise.all([
       prisma.semester
         .findFirst({
@@ -166,6 +169,19 @@ export default async function DashboardPage() {
             : []
         )
         .catch(() => []),
+
+      // Check tuition payment status
+      checkCurrentSemesterPayment(studentProfile.id).catch(() => ({
+        hasPaid: true,
+        hasScholarship: false,
+        amountDue: 0,
+        amountPaid: 0,
+        balance: 0,
+        programName: "",
+        programCode: "",
+        semesterName: "",
+        sessionName: "",
+      })),
     ]);
 
     // Calculate CGPA
@@ -253,6 +269,9 @@ export default async function DashboardPage() {
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3" />
           <div className="absolute bottom-0 right-20 w-32 h-32 bg-white/5 rounded-full translate-y-1/2" />
         </div>
+
+        {/* Payment Banner */}
+        <PaymentBanner paymentStatus={paymentStatus} />
 
         {/* Stat Cards */}
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">

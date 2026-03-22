@@ -1,5 +1,7 @@
 import { requireStudent } from "@/lib/auth";
 import { prisma } from "@repo/db";
+import { checkCurrentSemesterPayment } from "@/lib/payment-status";
+import { PaymentGate } from "@/components/payment-gate";
 import {
   Card,
   CardContent,
@@ -15,6 +17,7 @@ import { format } from "date-fns";
 export default async function CertificatePage() {
   try {
   const { studentProfile } = await requireStudent();
+  const paymentStatus = await checkCurrentSemesterPayment(studentProfile.id);
 
   // Check for certificate
   const certificate = await prisma.lmsCertificate.findFirst({
@@ -47,6 +50,7 @@ export default async function CertificatePage() {
 
   if (certificate) {
     return (
+      <PaymentGate paymentStatus={paymentStatus} message="Complete your tuition payment to view and download your certificate.">
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Certificate</h1>
@@ -103,10 +107,12 @@ export default async function CertificatePage() {
           </CardContent>
         </Card>
       </div>
+      </PaymentGate>
     );
   }
 
   return (
+    <PaymentGate paymentStatus={paymentStatus} message="Complete your tuition payment to view and download your certificate.">
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Certificate</h1>
@@ -166,6 +172,7 @@ export default async function CertificatePage() {
         </CardContent>
       </Card>
     </div>
+    </PaymentGate>
   );
   } catch {
     return (

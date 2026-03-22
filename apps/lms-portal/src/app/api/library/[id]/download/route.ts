@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@repo/db";
-import { getSession } from "@/lib/auth";
+import { requireStudent } from "@/lib/auth";
+import { checkCurrentSemesterPayment } from "@/lib/payment-status";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } },
 ) {
   try {
-    const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Login required" }, { status: 401 });
+    const { studentProfile } = await requireStudent();
+
+    // Check payment status before allowing download
+    const paymentStatus = await checkCurrentSemesterPayment(studentProfile.id);
+    if (!paymentStatus.hasPaid && !paymentStatus.hasScholarship) {
+      return NextResponse.json(
+        { error: "Tuition payment required to download books. Please complete your payment first." },
+        { status: 403 },
+      );
     }
 
     const book = await prisma.libraryBook.findUnique({
@@ -29,9 +36,12 @@ export async function POST(
     return NextResponse.json({ fileUrl: book.fileUrl });
   } catch (error) {
     console.error("Library download error:", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to process download";
+    const statusCode = message === "Unauthorized" ? 401 : 500;
     return NextResponse.json(
-      { error: "Failed to process download" },
-      { status: 500 },
+      { error: message },
+      { status: statusCode },
     );
   }
 }

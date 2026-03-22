@@ -1,5 +1,6 @@
 import { requireStudent } from "@/lib/auth";
 import { prisma } from "@repo/db";
+import { checkCurrentSemesterPayment } from "@/lib/payment-status";
 import { Card, CardContent, Badge, Progress } from "@repo/ui";
 import {
   BookOpen,
@@ -9,6 +10,7 @@ import {
   ArrowRight,
   CheckCircle2,
   GraduationCap,
+  Lock,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -16,10 +18,25 @@ export default async function CoursesPage() {
   try {
     const { studentProfile } = await requireStudent();
 
-    const activeSemester = await prisma.semester.findFirst({
-      where: { isActive: true },
-      include: { session: true },
-    });
+    const [activeSemester, paymentStatus] = await Promise.all([
+      prisma.semester.findFirst({
+        where: { isActive: true },
+        include: { session: true },
+      }),
+      checkCurrentSemesterPayment(studentProfile.id).catch(() => ({
+        hasPaid: true,
+        hasScholarship: false,
+        amountDue: 0,
+        amountPaid: 0,
+        balance: 0,
+        programName: "",
+        programCode: "",
+        semesterName: "",
+        sessionName: "",
+      })),
+    ]);
+
+    const isUnpaid = !paymentStatus.hasPaid && !paymentStatus.hasScholarship;
 
     const enrollments = activeSemester
       ? await prisma.courseEnrollment.findMany({
@@ -156,7 +173,16 @@ export default async function CoursesPage() {
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {coursesData.map((course, index) => (
               <Link key={course.id} href={`/courses/${course.id}`}>
-                <Card className="h-full border-0 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group overflow-hidden">
+                <Card className={`h-full border-0 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group overflow-hidden relative ${isUnpaid ? "opacity-75" : ""}`}>
+                  {/* Lock overlay for unpaid students */}
+                  {isUnpaid && (
+                    <div className="absolute top-3 right-3 z-10">
+                      <div className="flex items-center gap-1.5 bg-orange-100 text-orange-700 rounded-full px-2.5 py-1 text-[10px] font-semibold">
+                        <Lock className="h-3 w-3" />
+                        <span>Locked</span>
+                      </div>
+                    </div>
+                  )}
                   {/* Color header bar */}
                   <div
                     className={`h-2 bg-gradient-to-r ${courseColors[index % courseColors.length]}`}
@@ -170,9 +196,11 @@ export default async function CoursesPage() {
                       >
                         {course.code}
                       </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {course.creditUnits} CU
-                      </Badge>
+                      {!isUnpaid && (
+                        <Badge variant="outline" className="text-xs">
+                          {course.creditUnits} CU
+                        </Badge>
+                      )}
                     </div>
 
                     {/* Title */}
@@ -224,10 +252,18 @@ export default async function CoursesPage() {
                     </div>
 
                     {/* Completion badge */}
-                    {course.progress === 100 && (
+                    {course.progress === 100 && !isUnpaid && (
                       <div className="flex items-center gap-1.5 mt-3 text-xs text-green-600 bg-green-50 rounded-lg px-3 py-1.5">
                         <CheckCircle2 className="h-3.5 w-3.5" />
                         <span className="font-medium">Course completed</span>
+                      </div>
+                    )}
+
+                    {/* Pay tuition prompt for unpaid */}
+                    {isUnpaid && (
+                      <div className="flex items-center gap-1.5 mt-3 text-xs text-orange-700 bg-orange-50 rounded-lg px-3 py-1.5">
+                        <Lock className="h-3.5 w-3.5" />
+                        <span className="font-medium">Pay tuition to unlock</span>
                       </div>
                     )}
                   </CardContent>

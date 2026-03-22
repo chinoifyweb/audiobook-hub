@@ -1,5 +1,7 @@
 import { requireStudent } from "@/lib/auth";
 import { prisma } from "@repo/db";
+import { checkCurrentSemesterPayment } from "@/lib/payment-status";
+import { PaymentGate } from "@/components/payment-gate";
 import { notFound, redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, Badge, Button, Separator } from "@repo/ui";
 import { ClipboardCheck, Clock, AlertTriangle, CheckCircle } from "lucide-react";
@@ -40,6 +42,8 @@ export default async function TestInfoPage({
     notFound();
   }
 
+  const paymentStatus = await checkCurrentSemesterPayment(studentProfile.id);
+
   const now = new Date();
   const isWithinWindow =
     new Date(testExam.startTime) <= now && new Date(testExam.endTime) >= now;
@@ -47,6 +51,7 @@ export default async function TestInfoPage({
   const attempt = testExam.attempts[0];
 
   return (
+    <PaymentGate paymentStatus={paymentStatus} message="Complete your tuition payment to access tests and exams.">
     <div className="space-y-6 max-w-3xl">
       <div>
         <p className="text-sm text-muted-foreground">
@@ -210,5 +215,6 @@ export default async function TestInfoPage({
         </Card>
       )}
     </div>
+    </PaymentGate>
   );
 }

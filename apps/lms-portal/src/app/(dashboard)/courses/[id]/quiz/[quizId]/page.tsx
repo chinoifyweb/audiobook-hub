@@ -1,5 +1,7 @@
 import { requireStudent } from "@/lib/auth";
 import { prisma } from "@repo/db";
+import { checkCurrentSemesterPayment } from "@/lib/payment-status";
+import { PaymentGate } from "@/components/payment-gate";
 import { notFound } from "next/navigation";
 import {
   Card,
@@ -61,6 +63,8 @@ export default async function QuizLandingPage({
     notFound();
   }
 
+  const paymentStatus = await checkCurrentSemesterPayment(studentProfile.id);
+
   const now = new Date();
   const isOpen =
     new Date(testExam.startTime) <= now && new Date(testExam.endTime) >= now;
@@ -90,6 +94,7 @@ export default async function QuizLandingPage({
   );
 
   return (
+    <PaymentGate paymentStatus={paymentStatus} message="Complete your tuition payment to access quizzes and assessments.">
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -445,5 +450,6 @@ export default async function QuizLandingPage({
         </Link>
       </div>
     </div>
+    </PaymentGate>
   );
 }

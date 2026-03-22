@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Button, Card, CardContent, Badge, Separator } from "@repo/ui";
 import { Loader2, ChevronLeft, ChevronRight, Send } from "lucide-react";
 import { useTestStore, type TestQuestion } from "@/stores/test-store";
+import { PaymentGateClient } from "@/components/payment-gate-client";
 import { Timer } from "@/components/timer";
 import { QuestionNav } from "@/components/question-nav";
 
@@ -153,6 +154,7 @@ export default function TestTakePage() {
   if (!currentQuestion) return null;
 
   return (
+    <PaymentGateClient message="Complete your tuition payment to take tests and exams.">
     <div className="flex flex-col lg:flex-row gap-6">
       {/* Main Content */}
       <div className="flex-1 space-y-4">
@@ -366,5 +368,6 @@ export default function TestTakePage() {
         </Card>
       </div>
     </div>
+    </PaymentGateClient>
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, Separator, Button } from "@repo/ui";
 import { IdCard, Printer, Download, User, Loader2 } from "lucide-react";
+import { PaymentGateClient } from "@/components/payment-gate-client";
 
 interface StudentData {
   fullName: string;
@@ -66,6 +67,7 @@ export default function IdCardPage() {
   }
 
   return (
+    <PaymentGateClient message="Complete your tuition payment to view and print your student ID card.">
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -173,5 +175,6 @@ export default function IdCardPage() {
         Use the print button to save or print your ID card.
       </p>
     </div>
+    </PaymentGateClient>
   );
 }

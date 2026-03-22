@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { useTestStore, type TestQuestion } from "@/stores/test-store";
+import { PaymentGateClient } from "@/components/payment-gate-client";
 import { QuizTimer } from "@/components/lms/quiz-timer";
 import { QuizNav } from "@/components/lms/quiz-nav";
 
@@ -221,6 +222,7 @@ export default function QuizTakePage() {
   const answerStatus = hasAnswer ? "Answer saved" : "Not yet answered";
 
   return (
+    <PaymentGateClient message="Complete your tuition payment to take quizzes and assessments.">
     <div className="flex flex-col lg:flex-row gap-6 max-w-6xl mx-auto">
       {/* Main content */}
       <div className="flex-1 space-y-4">
@@ -596,5 +598,6 @@ export default function QuizTakePage() {
         </div>
       )}
     </div>
+    </PaymentGateClient>
   );
 }
