@@ -267,6 +267,63 @@ export default function PaymentsPage() {
         </div>
       )}
 
+      {/* No Fees Set Up State */}
+      {!currentFee && (
+        <Card className="border-amber-200 bg-amber-50/50">
+          <CardContent className="py-8">
+            <div className="text-center space-y-4">
+              <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">
+                <CreditCard className="h-8 w-8 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-amber-900">Tuition Fee Information</h3>
+                <p className="text-sm text-amber-700 mt-1 max-w-md mx-auto">
+                  Your tuition fee details are being processed. Please contact the admin office for payment instructions or use the options below.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 max-w-lg mx-auto pt-2">
+                <Card className="text-left">
+                  <CardContent className="p-4">
+                    <h4 className="font-medium text-sm mb-1">💳 Pay Online</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Contact admin to set up your fee, then pay securely via Paystack.
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="text-left">
+                  <CardContent className="p-4">
+                    <h4 className="font-medium text-sm mb-1">🏦 Bank Transfer</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Transfer to school account and upload your receipt below.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="flex flex-wrap justify-center gap-3 pt-2">
+                <a
+                  href="https://wa.me/2349027677276?text=Hello%2C%20I%20am%20a%20student%20and%20I%20need%20help%20with%20my%20tuition%20payment."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="default" size="sm" className="gap-1.5">
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    WhatsApp Admin
+                  </Button>
+                </a>
+                <a href="mailto:info@bba.org.ng">
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <HelpCircle className="h-3.5 w-3.5" />
+                    Email Admin
+                  </Button>
+                </a>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Current Semester Fee Summary */}
       {currentFee && (
         <div className="grid gap-4 md:grid-cols-4">
@@ -595,7 +652,7 @@ export default function PaymentsPage() {
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <a
-                    href="https://wa.me/2348000000000?text=Hello%2C%20I%20would%20like%20to%20inquire%20about%20scholarship%20or%20fee%20waiver%20options."
+                    href="https://wa.me/2349027677276?text=Hello%2C%20I%20would%20like%20to%20inquire%20about%20scholarship%20or%20fee%20waiver%20options%20at%20Berean%20Bible%20Academy."
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -604,7 +661,7 @@ export default function PaymentsPage() {
                       WhatsApp Support
                     </Button>
                   </a>
-                  <a href="mailto:admin@bereanbibleacademy.com">
+                  <a href="mailto:info@bba.org.ng">
                     <Button variant="outline" size="sm" className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-100">
                       <HelpCircle className="h-3.5 w-3.5" />
                       Email Admin
