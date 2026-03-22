@@ -22,6 +22,45 @@ export async function GET() {
   }
 }
 
+export async function PATCH(request: Request) {
+  try {
+    await requireAdmin();
+    const body = await request.json();
+    const { id, name, description, tuitionPerSemester, isActive, durationSemesters, totalCredits } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "Missing program ID" }, { status: 400 });
+    }
+
+    const existing = await prisma.program.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Program not found" }, { status: 404 });
+    }
+
+    const updateData: Record<string, unknown> = {};
+    if (name) updateData.name = name;
+    if (description !== undefined) updateData.description = description || null;
+    if (tuitionPerSemester !== undefined) updateData.tuitionPerSemester = parseInt(tuitionPerSemester, 10);
+    if (isActive !== undefined) updateData.isActive = isActive;
+    if (durationSemesters) updateData.durationSemesters = parseInt(durationSemesters, 10);
+    if (totalCredits) updateData.totalCredits = parseInt(totalCredits, 10);
+
+    const program = await prisma.program.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return NextResponse.json(program);
+  } catch (error) {
+    console.error("Update program error:", error);
+    const message = error instanceof Error ? error.message : "Internal server error";
+    if (message === "Unauthorized" || message === "Forbidden") {
+      return NextResponse.json({ error: message }, { status: message === "Unauthorized" ? 401 : 403 });
+    }
+    return NextResponse.json({ error: "Failed to update program" }, { status: 500 });
+  }
+}
+
 export async function POST(request: Request) {
   try {
     await requireAdmin();

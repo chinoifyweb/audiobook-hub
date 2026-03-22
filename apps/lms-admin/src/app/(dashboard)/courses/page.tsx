@@ -1,5 +1,4 @@
 import { prisma } from "@repo/db";
-import { Button } from "@repo/ui";
 import { CoursesClient } from "./courses-client";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +7,14 @@ export default async function CoursesPage() {
   const [courses, programs, departments] = await Promise.all([
     prisma.course.findMany({
       orderBy: { code: "asc" },
-      include: {
+      select: {
+        id: true,
+        code: true,
+        title: true,
+        description: true,
+        creditUnits: true,
+        semesterNumber: true,
+        isElective: true,
         department: { select: { name: true, code: true } },
         program: { select: { name: true, code: true } },
       },

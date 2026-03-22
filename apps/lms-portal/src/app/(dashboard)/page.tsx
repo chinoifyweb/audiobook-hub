@@ -94,10 +94,16 @@ export default async function DashboardPage() {
         .findMany({
           where: {
             isPublished: true,
-            startTime: { gte: new Date() },
+            endTime: { gte: new Date() },
             courseAssignment: {
               enrollments: {
                 some: { studentId: studentProfile.id, status: "enrolled" },
+              },
+            },
+            attempts: {
+              none: {
+                studentId: studentProfile.id,
+                status: { in: ["submitted", "graded"] },
               },
             },
           },
@@ -412,14 +418,17 @@ export default async function DashboardPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {upcomingTests.map((t) => (
+                  {upcomingTests.map((t) => {
+                    const now = new Date();
+                    const isOpen = new Date(t.startTime) <= now && new Date(t.endTime) >= now;
+                    return (
                     <Link
                       key={t.id}
                       href={`/tests/${t.id}`}
                       className="flex items-center gap-3 rounded-lg border p-3 hover:bg-blue-50/50 transition-colors group"
                     >
-                      <div className="rounded-lg bg-purple-100 p-2 shrink-0">
-                        <ClipboardCheck className="h-4 w-4 text-purple-600" />
+                      <div className={`rounded-lg p-2 shrink-0 ${isOpen ? "bg-green-100" : "bg-purple-100"}`}>
+                        <ClipboardCheck className={`h-4 w-4 ${isOpen ? "text-green-600" : "text-purple-600"}`} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate group-hover:text-blue-600">
@@ -428,28 +437,40 @@ export default async function DashboardPage() {
                         <p className="text-xs text-muted-foreground">
                           {t.courseAssignment.course.code} -{" "}
                           {t.type === "test" ? "Test" : "Exam"}
+                          {" | "}{t.durationMinutes} min
                         </p>
                       </div>
                       <div className="text-right shrink-0">
-                        <Badge variant="secondary" className="text-xs">
-                          {format(new Date(t.startTime), "MMM d")}
-                        </Badge>
+                        {isOpen ? (
+                          <Badge className="text-xs bg-green-600">Open Now</Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-xs">
+                            {format(new Date(t.startTime), "MMM d")}
+                          </Badge>
+                        )}
                         <p className="text-[10px] text-muted-foreground mt-0.5">
-                          {formatDistanceToNow(new Date(t.startTime), {
-                            addSuffix: true,
-                          })}
+                          {isOpen
+                            ? `Closes ${formatDistanceToNow(new Date(t.endTime), { addSuffix: true })}`
+                            : formatDistanceToNow(new Date(t.startTime), { addSuffix: true })
+                          }
                         </p>
                       </div>
                     </Link>
-                  ))}
-                  {pendingAssignments.map((a) => (
+                    );
+                  })}
+                  {pendingAssignments.map((a) => {
+                    const daysUntilDue = Math.ceil(
+                      (new Date(a.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+                    );
+                    const isUrgent = daysUntilDue <= 2;
+                    return (
                     <Link
                       key={a.id}
                       href={`/assignments/${a.id}`}
                       className="flex items-center gap-3 rounded-lg border p-3 hover:bg-blue-50/50 transition-colors group"
                     >
-                      <div className="rounded-lg bg-orange-100 p-2 shrink-0">
-                        <FileText className="h-4 w-4 text-orange-600" />
+                      <div className={`rounded-lg p-2 shrink-0 ${isUrgent ? "bg-red-100" : "bg-orange-100"}`}>
+                        <FileText className={`h-4 w-4 ${isUrgent ? "text-red-600" : "text-orange-600"}`} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate group-hover:text-blue-600">
@@ -457,15 +478,20 @@ export default async function DashboardPage() {
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {a.courseAssignment.course.code} - Assignment
+                          {" | Max: "}{a.maxScore} pts
                         </p>
                       </div>
                       <div className="text-right shrink-0">
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant={isUrgent ? "destructive" : "outline"} className="text-xs">
                           Due {format(new Date(a.dueDate), "MMM d")}
                         </Badge>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {formatDistanceToNow(new Date(a.dueDate), { addSuffix: true })}
+                        </p>
                       </div>
                     </Link>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

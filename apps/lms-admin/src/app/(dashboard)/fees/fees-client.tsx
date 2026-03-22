@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Edit, X } from "lucide-react";
 import { format } from "date-fns";
 
 interface TuitionFeeData {
@@ -28,6 +28,12 @@ export function FeesClient({ tuitionFees, programs, semesters }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  // Edit modal
+  const [editingFee, setEditingFee] = useState<TuitionFeeData | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -52,6 +58,8 @@ export function FeesClient({ tuitionFees, programs, semesters }: Props) {
         return;
       }
       setShowForm(false);
+      setSuccess("Fee created successfully");
+      setTimeout(() => setSuccess(""), 4000);
       router.refresh();
     } catch {
       setError("An unexpected error occurred");
@@ -60,8 +68,49 @@ export function FeesClient({ tuitionFees, programs, semesters }: Props) {
     }
   }
 
+  async function handleEdit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!editingFee) return;
+    setEditLoading(true);
+    setEditError("");
+
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      id: editingFee.id,
+      amount: Math.round(parseFloat(formData.get("amount") as string) * 100),
+      description: formData.get("description") as string,
+      dueDate: formData.get("dueDate") as string,
+      isActive: formData.get("isActive") === "true",
+    };
+
+    try {
+      const res = await fetch("/api/fees", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const result = await res.json();
+        setEditError(result.error || "Failed to update fee");
+        return;
+      }
+      setEditingFee(null);
+      setSuccess("Fee updated successfully");
+      setTimeout(() => setSuccess(""), 4000);
+      router.refresh();
+    } catch {
+      setEditError("An unexpected error occurred");
+    } finally {
+      setEditLoading(false);
+    }
+  }
+
   return (
     <>
+      {success && (
+        <div className="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">{success}</div>
+      )}
+
       <div className="flex justify-end">
         <Button onClick={() => setShowForm(!showForm)}>
           <Plus className="mr-2 h-4 w-4" />
@@ -124,11 +173,12 @@ export function FeesClient({ tuitionFees, programs, semesters }: Props) {
               <th className="h-10 px-4 text-left font-medium text-muted-foreground">Due Date</th>
               <th className="h-10 px-4 text-left font-medium text-muted-foreground">Payments</th>
               <th className="h-10 px-4 text-left font-medium text-muted-foreground">Status</th>
+              <th className="h-10 px-4 text-right font-medium text-muted-foreground">Actions</th>
             </tr>
           </thead>
           <tbody>
             {tuitionFees.length === 0 ? (
-              <tr><td colSpan={6} className="h-24 text-center text-muted-foreground">No fee structures found.</td></tr>
+              <tr><td colSpan={7} className="h-24 text-center text-muted-foreground">No fee structures found.</td></tr>
             ) : (
               tuitionFees.map((fee) => (
                 <tr key={fee.id} className="border-b hover:bg-muted/50">
@@ -142,12 +192,79 @@ export function FeesClient({ tuitionFees, programs, semesters }: Props) {
                       {fee.isActive ? "Active" : "Inactive"}
                     </span>
                   </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        title="Edit Fee"
+                        onClick={() => setEditingFee(fee)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Edit Modal */}
+      {editingFee && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <Card className="w-full max-w-lg">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Edit Fee: {editingFee.program.code}</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => { setEditingFee(null); setEditError(""); }}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleEdit} className="space-y-4">
+                {editError && (
+                  <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{editError}</div>
+                )}
+                <div className="text-sm text-muted-foreground mb-2">
+                  {editingFee.program.code} | {editingFee.semester.session.name} - {editingFee.semester.name}
+                </div>
+                <div className="grid gap-4 grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-amount">Amount ({"\u20A6"})</Label>
+                    <Input id="edit-amount" name="amount" type="number" min="0" step="0.01" defaultValue={(editingFee.amount / 100).toFixed(2)} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-dueDate">Due Date</Label>
+                    <Input id="edit-dueDate" name="dueDate" type="date" defaultValue={format(new Date(editingFee.dueDate), "yyyy-MM-dd")} required />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-description">Description</Label>
+                  <Input id="edit-description" name="description" defaultValue={editingFee.description || ""} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-isActive">Status</Label>
+                  <select id="edit-isActive" name="isActive" defaultValue={editingFee.isActive ? "true" : "false"} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                  </select>
+                </div>
+                <div className="flex gap-3">
+                  <Button type="submit" disabled={editLoading}>
+                    {editLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save Changes
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => { setEditingFee(null); setEditError(""); }}>Cancel</Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </>
   );
 }

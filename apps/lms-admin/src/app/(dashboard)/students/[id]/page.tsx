@@ -19,12 +19,13 @@ interface Props {
 }
 
 export default async function StudentDetailPage({ params }: Props) {
-  const student = await prisma.studentProfile.findUnique({
+  const [student, programs] = await Promise.all([
+    prisma.studentProfile.findUnique({
     where: { id: params.id },
     include: {
       user: { select: { fullName: true, email: true, phone: true, avatarUrl: true } },
       program: {
-        select: { name: true, code: true, degreeType: true, department: { select: { name: true } } },
+        select: { id: true, name: true, code: true, degreeType: true, department: { select: { name: true } } },
       },
       enrollments: {
         orderBy: { enrolledAt: "desc" },
@@ -48,7 +49,12 @@ export default async function StudentDetailPage({ params }: Props) {
         },
       },
     },
-  });
+  }),
+    prisma.program.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, code: true },
+    }),
+  ]);
 
   if (!student) {
     notFound();
@@ -115,7 +121,20 @@ export default async function StudentDetailPage({ params }: Props) {
         </Card>
 
         {/* Actions */}
-        <StudentActions studentId={student.id} status={student.status} />
+        <StudentActions
+          studentId={student.id}
+          status={student.status}
+          student={{
+            fullName: student.user.fullName,
+            email: student.user.email,
+            phone: student.user.phone,
+            programId: student.program.id,
+            programName: student.program.name,
+            currentSemester: student.currentSemester,
+            studentIdNumber: student.studentId,
+          }}
+          programs={programs}
+        />
       </div>
 
       {/* Course Enrollments & Grades */}
