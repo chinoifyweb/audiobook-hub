@@ -99,7 +99,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://portal.bba.org.ng"}/payments?reference=${reference}`;
+    const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://ses.bba.org.ng"}/payments?reference=${reference}`;
 
     const result = await initializeTransaction({
       email: user.email,
