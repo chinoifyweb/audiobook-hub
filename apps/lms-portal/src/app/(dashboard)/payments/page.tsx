@@ -283,23 +283,146 @@ export default function PaymentsPage() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 max-w-lg mx-auto pt-2">
-                <Card className="text-left">
-                  <CardContent className="p-4">
-                    <h4 className="font-medium text-sm mb-1">💳 Pay Online</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Contact admin to set up your fee, then pay securely via Paystack.
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="text-left">
+                <a
+                  href="https://wa.me/2349027677276?text=Hello%2C%20I%20am%20a%20student%20and%20I%20would%20like%20to%20pay%20my%20tuition%20online%20via%20Paystack.%20Please%20set%20up%20my%20fee."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block"
+                >
+                  <Card className="text-left cursor-pointer hover:border-primary hover:shadow-md transition-all h-full">
+                    <CardContent className="p-4">
+                      <h4 className="font-medium text-sm mb-1">💳 Pay Online</h4>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Click to contact admin on WhatsApp to set up your fee for Paystack payment.
+                      </p>
+                      <span className="text-xs text-primary font-medium">Chat on WhatsApp →</span>
+                    </CardContent>
+                  </Card>
+                </a>
+                <Card
+                  className="text-left cursor-pointer hover:border-primary hover:shadow-md transition-all"
+                  onClick={() => setShowReceiptUpload(true)}
+                >
                   <CardContent className="p-4">
                     <h4 className="font-medium text-sm mb-1">🏦 Bank Transfer</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Transfer to school account and upload your receipt below.
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Already paid via bank transfer? Click to upload your receipt for verification.
                     </p>
+                    <span className="text-xs text-primary font-medium">Upload Receipt →</span>
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Receipt Upload for No-Fee State */}
+              {showReceiptUpload && (
+                <div className="rounded-lg border bg-white p-4 space-y-4 max-w-lg mx-auto text-left">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Upload Bank Transfer Receipt
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    Upload proof of payment for admin to verify and credit your account.
+                  </p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="noFeeAmount">Amount Paid ({"\u20A6"})</Label>
+                      <Input
+                        id="noFeeAmount"
+                        type="number"
+                        min="0"
+                        placeholder="e.g. 75000"
+                        value={receiptForm.amount}
+                        onChange={(e) => setReceiptForm({ ...receiptForm, amount: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="noFeeBankName">Bank Name</Label>
+                      <Input
+                        id="noFeeBankName"
+                        placeholder="e.g. GTBank"
+                        value={receiptForm.bankName}
+                        onChange={(e) => setReceiptForm({ ...receiptForm, bankName: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="noFeeRef">Transaction Reference</Label>
+                      <Input
+                        id="noFeeRef"
+                        placeholder="Bank reference number"
+                        value={receiptForm.reference}
+                        onChange={(e) => setReceiptForm({ ...receiptForm, reference: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="noFeeDate">Transfer Date</Label>
+                      <Input
+                        id="noFeeDate"
+                        type="date"
+                        value={receiptForm.transferDate}
+                        onChange={(e) => setReceiptForm({ ...receiptForm, transferDate: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="noFeeFile">Receipt Image/PDF</Label>
+                    <Input
+                      id="noFeeFile"
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={async () => {
+                        if (!receiptFile || !receiptForm.amount || !receiptForm.bankName) {
+                          setMessage({ type: "error", text: "Please fill in amount, bank name, and upload receipt" });
+                          return;
+                        }
+                        setUploadingReceipt(true);
+                        try {
+                          const uploaded = await uploadDocument(receiptFile, "payment-receipts");
+                          if (!uploaded) {
+                            setMessage({ type: "error", text: "Failed to upload file" });
+                            return;
+                          }
+                          const res = await fetch("/api/fees/upload-receipt", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              amount: Math.round(parseFloat(receiptForm.amount) * 100),
+                              bankName: receiptForm.bankName,
+                              bankReference: receiptForm.reference,
+                              transferDate: receiptForm.transferDate,
+                              receiptUploadUrl: uploaded.url,
+                            }),
+                          });
+                          if (res.ok) {
+                            setMessage({ type: "success", text: "Receipt uploaded! Admin will verify and credit your account." });
+                            setShowReceiptUpload(false);
+                            setReceiptFile(null);
+                            setReceiptForm({ amount: "", bankName: "", reference: "", transferDate: "" });
+                          } else {
+                            const data = await res.json();
+                            setMessage({ type: "error", text: data.error || "Failed to submit" });
+                          }
+                        } catch {
+                          setMessage({ type: "error", text: "Upload failed" });
+                        } finally {
+                          setUploadingReceipt(false);
+                        }
+                      }}
+                      disabled={uploadingReceipt}
+                    >
+                      {uploadingReceipt && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Submit Receipt
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowReceiptUpload(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-wrap justify-center gap-3 pt-2">
                 <a
