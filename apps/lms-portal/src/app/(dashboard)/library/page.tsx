@@ -22,30 +22,56 @@ const CATEGORIES = [
 ];
 
 export default async function StudentLibraryPage() {
-  const books = await prisma.libraryBook.findMany({
-    where: { isActive: true },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      title: true,
-      author: true,
-      description: true,
-      category: true,
-      subcategory: true,
-      coverImageUrl: true,
-      fileUrl: true,
-      fileType: true,
-      fileSize: true,
-      publisher: true,
-      publicationYear: true,
-      language: true,
-      tags: true,
-      downloadCount: true,
-      isPublic: true,
-      isbn: true,
-      createdAt: true,
-    },
-  });
+  let books: Array<{
+    id: string;
+    title: string;
+    author: string;
+    description: string | null;
+    category: string;
+    subcategory: string | null;
+    coverImageUrl: string | null;
+    fileUrl: string;
+    fileType: string;
+    fileSize: bigint;
+    publisher: string | null;
+    publicationYear: number | null;
+    language: string;
+    tags: string[];
+    downloadCount: number;
+    isPublic: boolean;
+    isbn: string | null;
+    createdAt: Date;
+  }> = [];
+
+  try {
+    books = await prisma.libraryBook.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        author: true,
+        description: true,
+        category: true,
+        subcategory: true,
+        coverImageUrl: true,
+        fileUrl: true,
+        fileType: true,
+        fileSize: true,
+        publisher: true,
+        publicationYear: true,
+        language: true,
+        tags: true,
+        downloadCount: true,
+        isPublic: true,
+        isbn: true,
+        createdAt: true,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to fetch library books:", error);
+    // Return empty library instead of crashing
+  }
 
   // Get category counts
   const categoryCounts: Record<string, number> = {};

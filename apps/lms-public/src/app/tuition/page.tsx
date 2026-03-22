@@ -13,10 +13,10 @@ export const metadata: Metadata = {
 };
 
 const tuitionTable = [
-  { programme: "B.A. Programmes (4 options)", perSemester: "TBD", total: "TBD", duration: "8 Semesters" },
-  { programme: "PGD in Theology", perSemester: "TBD", total: "TBD", duration: "2 Semesters" },
-  { programme: "M.A. Programmes (6 options)", perSemester: "TBD", total: "TBD", duration: "3-4 Semesters" },
-  { programme: "Master of Divinity (M.Div.)", perSemester: "TBD", total: "TBD", duration: "6 Semesters" },
+  { programme: "B.A. Programmes (4 options)", perSemester: "\u20A675,000", total: "\u20A6600,000", duration: "8 Semesters" },
+  { programme: "PGD in Theology", perSemester: "\u20A6100,000", total: "\u20A6200,000", duration: "2 Semesters" },
+  { programme: "M.A. Programmes (6 options)", perSemester: "\u20A6125,000", total: "\u20A6375,000 - \u20A6500,000", duration: "3-4 Semesters" },
+  { programme: "Master of Divinity (M.Div.)", perSemester: "\u20A6150,000", total: "\u20A6900,000", duration: "6 Semesters" },
 ];
 
 const scholarships = [
@@ -148,9 +148,10 @@ export default function TuitionPage() {
             </table>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            Tuition amounts will be published before the start of the 2026/2027
-            session. A non-refundable application fee applies to all programmes.
-            Contact the admissions office for the latest fee schedule.
+            Fees shown are for the 2025/2026 academic session. A non-refundable
+            application fee applies to all programmes. Total estimates are based
+            on the minimum duration. Contact the admissions office for the latest
+            fee schedule.
           </p>
         </div>
       </section>

@@ -28,7 +28,11 @@ function LoginPageContent() {
       });
 
       if (result?.error) {
-        setError(result.error);
+        if (result.error === "CredentialsSignin") {
+          setError("Invalid email or password. Please try again.");
+        } else {
+          setError(result.error);
+        }
       } else if (result?.url) {
         window.location.href = result.url;
       }
