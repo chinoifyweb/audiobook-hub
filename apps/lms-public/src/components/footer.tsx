@@ -13,6 +13,7 @@ const quickLinks = [
 
 const resourceLinks = [
   { label: "About Us", href: "/about" },
+  { label: "Digital Library", href: "/library" },
   { label: "Contact", href: "/contact" },
   { label: "FAQ", href: "/faq" },
   { label: "Student Portal", href: `${PORTAL_URL}/login` },

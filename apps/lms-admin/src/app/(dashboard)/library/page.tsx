@@ -36,6 +36,8 @@ export default async function LibraryPage() {
   const serializedBooks = books.map((b) => ({
     ...b,
     fileSize: b.fileSize.toString(),
+    createdAt: b.createdAt.toISOString(),
+    updatedAt: b.updatedAt.toISOString(),
   }));
 
   return (

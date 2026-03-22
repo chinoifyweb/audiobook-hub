@@ -14,6 +14,7 @@ import {
   Award,
   Settings,
   X,
+  Library,
 } from "lucide-react";
 
 const navItems = [
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/assignments", label: "Assignments", icon: FileText },
   { href: "/tests", label: "Tests & Exams", icon: ClipboardCheck },
   { href: "/grades", label: "Grades", icon: BarChart3 },
+  { href: "/library", label: "E-Library", icon: Library },
   { href: "/payments", label: "Payments", icon: CreditCard },
   { href: "/id-card", label: "ID Card", icon: IdCard },
   { href: "/certificate", label: "Certificate", icon: Award },
