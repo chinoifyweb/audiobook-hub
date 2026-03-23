@@ -15,20 +15,42 @@ export async function POST(request: Request) {
       receiptUploadUrl,
     } = await request.json();
 
-    if (!tuitionFeeId || !amount || !bankName || !bankReference || !transferDate || !receiptUploadUrl) {
+    if (!amount || !bankName || !receiptUploadUrl) {
       return NextResponse.json(
-        { error: "All fields are required" },
+        { error: "Amount, bank name, and receipt are required" },
         { status: 400 }
       );
     }
 
-    const tuitionFee = await prisma.tuitionFee.findUnique({
-      where: { id: tuitionFeeId },
-    });
+    // Find tuition fee — use provided ID or auto-find for student's program
+    let feeId = tuitionFeeId;
+    if (!feeId) {
+      const activeSemester = await prisma.semester.findFirst({
+        where: { isActive: true },
+      });
 
-    if (!tuitionFee) {
+      const autoFee = await prisma.tuitionFee.findFirst({
+        where: {
+          programId: studentProfile.programId,
+          isActive: true,
+          ...(activeSemester ? { semesterId: activeSemester.id } : {}),
+        },
+      });
+
+      if (autoFee) {
+        feeId = autoFee.id;
+      } else {
+        // No fee record exists — create a generic one so payment can be tracked
+        const anyFee = await prisma.tuitionFee.findFirst({
+          where: { programId: studentProfile.programId, isActive: true },
+        });
+        feeId = anyFee?.id || null;
+      }
+    }
+
+    if (!feeId) {
       return NextResponse.json(
-        { error: "Tuition fee not found" },
+        { error: "No tuition fee found for your program. Please contact admin." },
         { status: 404 }
       );
     }
@@ -39,7 +61,7 @@ export async function POST(request: Request) {
     await prisma.tuitionPayment.create({
       data: {
         studentId: studentProfile.id,
-        tuitionFeeId,
+        tuitionFeeId: feeId,
         amount: parseInt(String(amount), 10),
         paystackReference: reference,
         status: "pending",
