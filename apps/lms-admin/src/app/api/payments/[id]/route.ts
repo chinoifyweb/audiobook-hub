@@ -30,7 +30,62 @@ export async function PATCH(
           reviewedBy: session.user.id,
         },
       });
-      return NextResponse.json({ message: "Payment approved" });
+
+      // Auto-enroll student if payment is now complete
+      let enrolledCount = 0;
+      const allPayments = await prisma.tuitionPayment.findMany({
+        where: { studentId: payment.studentId, tuitionFeeId: payment.tuitionFeeId, status: "successful" },
+      });
+      const totalPaid = allPayments.reduce((sum, p) => sum + p.amount, 0);
+
+      const fee = await prisma.tuitionFee.findUnique({ where: { id: payment.tuitionFeeId } });
+      const student = await prisma.studentProfile.findUnique({
+        where: { id: payment.studentId },
+        select: { programId: true },
+      });
+
+      const scholarship = await prisma.$queryRaw<Array<{ approved_percentage: number }>>`
+        SELECT approved_percentage FROM scholarship_applications
+        WHERE student_id = ${payment.studentId} AND status = 'approved' AND approved_percentage > 0
+        ORDER BY created_at DESC LIMIT 1
+      `;
+      const discountPct = scholarship.length > 0 ? scholarship[0].approved_percentage : 0;
+      const totalDue = fee ? fee.amount - Math.round(fee.amount * (discountPct / 100)) : 0;
+
+      if (fee && student && totalPaid >= totalDue) {
+        const activeSemester = await prisma.semester.findFirst({ where: { isActive: true } });
+        if (activeSemester) {
+          const courseAssignments = await prisma.courseAssignment.findMany({
+            where: {
+              semesterId: activeSemester.id,
+              isActive: true,
+              course: { programId: student.programId },
+            },
+            select: { id: true },
+          });
+
+          for (const ca of courseAssignments) {
+            const existing = await prisma.courseEnrollment.findFirst({
+              where: { studentId: payment.studentId, courseAssignmentId: ca.id },
+            });
+            if (!existing) {
+              await prisma.courseEnrollment.create({
+                data: {
+                  studentId: payment.studentId,
+                  courseAssignmentId: ca.id,
+                  semesterId: activeSemester.id,
+                  status: "active",
+                },
+              });
+              enrolledCount++;
+            }
+          }
+        }
+      }
+
+      return NextResponse.json({
+        message: `Payment approved.${enrolledCount > 0 ? ` Student enrolled in ${enrolledCount} course(s).` : ""}`,
+      });
     } else if (action === "reject") {
       await prisma.tuitionPayment.update({
         where: { id },

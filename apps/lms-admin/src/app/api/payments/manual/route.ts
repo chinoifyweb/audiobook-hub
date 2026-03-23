@@ -66,9 +66,60 @@ export async function POST(request: Request) {
       },
     });
 
+    // Check if payment is now complete — if so, auto-enroll in courses
+    const allPayments = await prisma.tuitionPayment.findMany({
+      where: { studentId, tuitionFeeId: feeId, status: "successful" },
+    });
+    const totalPaid = allPayments.reduce((sum, p) => sum + p.amount, 0);
+
+    const fee = await prisma.tuitionFee.findUnique({ where: { id: feeId } });
+
+    // Check for scholarship discount
+    const scholarship = await prisma.$queryRaw<Array<{ approved_percentage: number }>>`
+      SELECT approved_percentage FROM scholarship_applications
+      WHERE student_id = ${studentId} AND status = 'approved' AND approved_percentage > 0
+      ORDER BY created_at DESC LIMIT 1
+    `;
+    const discountPct = scholarship.length > 0 ? scholarship[0].approved_percentage : 0;
+    const totalDue = fee ? fee.amount - Math.round(fee.amount * (discountPct / 100)) : 0;
+
+    let enrolledCount = 0;
+    if (fee && totalPaid >= totalDue) {
+      // Payment complete — enroll student in all courses for their program this semester
+      const activeSemester = await prisma.semester.findFirst({ where: { isActive: true } });
+      if (activeSemester) {
+        const courseAssignments = await prisma.courseAssignment.findMany({
+          where: {
+            semesterId: activeSemester.id,
+            isActive: true,
+            course: { programId: student.programId },
+          },
+          select: { id: true },
+        });
+
+        for (const ca of courseAssignments) {
+          const existing = await prisma.courseEnrollment.findFirst({
+            where: { studentId, courseAssignmentId: ca.id },
+          });
+          if (!existing) {
+            await prisma.courseEnrollment.create({
+              data: {
+                studentId,
+                courseAssignmentId: ca.id,
+                semesterId: activeSemester.id,
+                status: "active",
+              },
+            });
+            enrolledCount++;
+          }
+        }
+      }
+    }
+
     return NextResponse.json({
-      message: "Payment recorded successfully",
+      message: `Payment recorded successfully.${enrolledCount > 0 ? ` Student enrolled in ${enrolledCount} course(s).` : ""}`,
       reference,
+      enrolledCount,
     });
   } catch (error) {
     console.error("Manual payment error:", error);
