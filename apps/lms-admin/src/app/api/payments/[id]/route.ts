@@ -96,6 +96,19 @@ export async function PATCH(
         },
       });
       return NextResponse.json({ message: "Payment rejected" });
+    } else if (action === "edit") {
+      const { amount, status: newStatus, notes: editNotes } = body;
+      const updateData: Record<string, unknown> = {};
+      if (amount !== undefined) updateData.amount = parseInt(String(amount), 10);
+      if (newStatus) updateData.status = newStatus;
+      if (editNotes !== undefined) updateData.adminNotes = editNotes;
+      updateData.reviewedBy = session.user.id;
+
+      await prisma.tuitionPayment.update({
+        where: { id },
+        data: updateData,
+      });
+      return NextResponse.json({ message: "Payment updated" });
     } else {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
@@ -105,5 +118,26 @@ export async function PATCH(
       return NextResponse.json({ error: message }, { status: message === "Unauthorized" ? 401 : 403 });
     }
     return NextResponse.json({ error: "Failed to update payment" }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await requireAdmin();
+    const { id } = await params;
+
+    const payment = await prisma.tuitionPayment.findUnique({ where: { id } });
+    if (!payment) {
+      return NextResponse.json({ error: "Payment not found" }, { status: 404 });
+    }
+
+    await prisma.tuitionPayment.delete({ where: { id } });
+    return NextResponse.json({ message: "Payment deleted" });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -23,6 +23,8 @@ import {
   X,
   AlertCircle,
   Download,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 
 interface Payment {
@@ -133,6 +135,11 @@ export default function AdminPaymentsPage() {
   });
   const [manualLoading, setManualLoading] = useState(false);
   const [allStudents, setAllStudents] = useState<Array<{ id: string; name: string; email: string; studentId: string }>>([]);
+
+  // Edit modal
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingPayment, setEditingPayment] = useState({ amount: "", status: "", notes: "" });
+  const [editLoading, setEditLoading] = useState(false);
 
   // Batch selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -653,6 +660,47 @@ export default function AdminPaymentsPage() {
                               </Button>
                             </>
                           )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            title="Edit Payment"
+                            onClick={() => {
+                              setSelectedPayment(payment);
+                              setEditingPayment({
+                                amount: String(payment.amount / 100),
+                                status: payment.status,
+                                notes: payment.adminNotes || "",
+                              });
+                              setShowEditModal(true);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                            title="Delete Payment"
+                            disabled={actionLoading}
+                            onClick={async () => {
+                              if (!confirm("Are you sure you want to delete this payment record? This cannot be undone.")) return;
+                              setActionLoading(true);
+                              try {
+                                const res = await fetch(`/api/payments/${payment.id}`, { method: "DELETE" });
+                                if (res.ok) {
+                                  setMessage({ type: "success", text: "Payment deleted" });
+                                  fetchPayments();
+                                } else {
+                                  const data = await res.json();
+                                  setMessage({ type: "error", text: data.error || "Failed to delete" });
+                                }
+                              } catch { setMessage({ type: "error", text: "Delete failed" }); }
+                              finally { setActionLoading(false); }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -779,6 +827,85 @@ export default function AdminPaymentsPage() {
                   </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Payment Modal */}
+      {showEditModal && selectedPayment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-lg">Edit Payment</CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => setShowEditModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Amount ({"\u20A6"})</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={editingPayment.amount}
+                  onChange={(e) => setEditingPayment({ ...editingPayment, amount: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={editingPayment.status}
+                  onChange={(e) => setEditingPayment({ ...editingPayment, status: e.target.value })}
+                >
+                  <option value="pending">Pending</option>
+                  <option value="successful">Successful</option>
+                  <option value="failed">Failed</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Admin Notes</Label>
+                <Input
+                  value={editingPayment.notes}
+                  onChange={(e) => setEditingPayment({ ...editingPayment, notes: e.target.value })}
+                  placeholder="Optional notes"
+                />
+              </div>
+              <div className="flex gap-3 justify-end">
+                <Button variant="outline" onClick={() => setShowEditModal(false)}>Cancel</Button>
+                <Button
+                  disabled={editLoading}
+                  onClick={async () => {
+                    setEditLoading(true);
+                    try {
+                      const res = await fetch(`/api/payments/${selectedPayment.id}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          action: "edit",
+                          amount: Math.round(parseFloat(editingPayment.amount) * 100),
+                          status: editingPayment.status,
+                          notes: editingPayment.notes,
+                        }),
+                      });
+                      if (res.ok) {
+                        setMessage({ type: "success", text: "Payment updated" });
+                        setShowEditModal(false);
+                        setSelectedPayment(null);
+                        fetchPayments();
+                      } else {
+                        const data = await res.json();
+                        setMessage({ type: "error", text: data.error || "Update failed" });
+                      }
+                    } catch { setMessage({ type: "error", text: "Update failed" }); }
+                    finally { setEditLoading(false); }
+                  }}
+                >
+                  {editLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Changes
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
