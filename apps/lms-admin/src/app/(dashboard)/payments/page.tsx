@@ -132,6 +132,7 @@ export default function AdminPaymentsPage() {
     notes: "",
   });
   const [manualLoading, setManualLoading] = useState(false);
+  const [allStudents, setAllStudents] = useState<Array<{ id: string; name: string; email: string; studentId: string }>>([]);
 
   // Batch selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -139,7 +140,25 @@ export default function AdminPaymentsPage() {
 
   useEffect(() => {
     fetchPayments();
+    fetchStudents();
   }, [filterStatus, filterMethod]);
+
+  async function fetchStudents() {
+    try {
+      const res = await fetch("/api/students?list=true");
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setAllStudents(data.map((s: Record<string, unknown>) => ({
+          id: (s as { id: string }).id,
+          name: ((s as { user?: { fullName?: string } }).user?.fullName) || "Unknown",
+          email: ((s as { user?: { email?: string } }).user?.email) || "",
+          studentId: ((s as { studentId?: string }).studentId) || "",
+        })));
+      }
+    } catch {
+      // ignore
+    }
+  }
 
   async function fetchPayments() {
     setLoading(true);
@@ -389,11 +408,11 @@ export default function AdminPaymentsPage() {
                   required
                 >
                   <option value="">Select a student...</option>
-                  {payments.map((p) => (
-                    <option key={p.studentId} value={p.studentId}>
-                      {p.studentName} ({p.studentEmail})
+                  {allStudents.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} — {s.studentId} ({s.email})
                     </option>
-                  )).filter((v, i, a) => a.findIndex(t => t.key === v.key) === i)}
+                  ))}
                 </select>
                 <p className="text-xs text-muted-foreground">
                   Tuition fee will be auto-detected based on the student&apos;s program.
