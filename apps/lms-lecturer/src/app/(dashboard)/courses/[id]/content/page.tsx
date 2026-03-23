@@ -341,17 +341,6 @@ function AddContentDialog({ courseId, sessionNumber, onCreated }: AddContentDial
                     )}
                   </div>
 
-                  {/* Also allow pasting a URL */}
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <div className="flex-1 h-px bg-border" />
-                    <span>or paste a URL</span>
-                    <div className="flex-1 h-px bg-border" />
-                  </div>
-                  <Input
-                    value={form.contentUrl}
-                    onChange={(e) => setForm({ ...form, contentUrl: e.target.value })}
-                    placeholder="https://your-project.supabase.co/storage/v1/..."
-                  />
                 </div>
               ) : null}
             </div>
@@ -525,19 +514,27 @@ function EditContentDialog({ courseId, material, onUpdated }: EditContentDialogP
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Content URL</Label>
-            <Input
-              value={form.contentUrl}
-              onChange={(e) => setForm({ ...form, contentUrl: e.target.value })}
-              required
-            />
-          </div>
+          {/* URL input only for non-uploadable types */}
+          {!isUploadableType && (
+            <div className="space-y-2">
+              <Label>Content URL</Label>
+              <Input
+                value={form.contentUrl}
+                onChange={(e) => setForm({ ...form, contentUrl: e.target.value })}
+                required
+              />
+            </div>
+          )}
 
-          {/* File re-upload option */}
+          {/* File upload / replace for uploadable types */}
           {isUploadableType && (
             <div className="space-y-2">
-              <Label>Replace File (optional)</Label>
+              <Label>Upload File</Label>
+              {form.contentUrl && (
+                <p className="text-xs text-green-600 flex items-center gap-1 mb-1">
+                  <FileUp className="h-3 w-3" /> Current file: {form.contentUrl.split("/").pop()}
+                </p>
+              )}
               <div
                 className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors"
                 onClick={() => fileInputRef.current?.click()}

@@ -44,6 +44,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { PaymentGateClient } from "@/components/payment-gate-client";
+import { uploadAssignmentFile } from "@/lib/supabase";
 import { format, differenceInSeconds } from "date-fns";
 
 interface Assignment {
@@ -79,6 +80,8 @@ export default function AssignmentDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submissionText, setSubmissionText] = useState("");
   const [fileUrl, setFileUrl] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showComments, setShowComments] = useState(false);
@@ -116,6 +119,7 @@ export default function AssignmentDetailPage() {
     setPhase("upload");
     setSubmissionText("");
     setFileUrl("");
+    setFileName("");
   }
 
   function handleEditDraft() {
@@ -430,7 +434,7 @@ export default function AssignmentDetailPage() {
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:underline flex items-center gap-1"
                         >
-                          Submitted file
+                          {fileName || "Submitted file"}
                           <ExternalLink className="h-3 w-3" />
                         </a>
                       </div>
@@ -573,23 +577,68 @@ export default function AssignmentDetailPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="fileUrl">
-                      File URL{" "}
+                    <Label htmlFor="fileUpload">
+                      Upload File{" "}
                       {assignment.fileRequired ? "(required)" : "(optional)"}
                     </Label>
                     <Input
-                      id="fileUrl"
-                      value={fileUrl}
-                      onChange={(e) => setFileUrl(e.target.value)}
-                      placeholder="Paste link to your file (Google Drive, etc.)"
+                      id="fileUpload"
+                      type="file"
+                      accept=".pdf,.doc,.docx,.pptx,.jpg,.jpeg,.png"
+                      disabled={uploading}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 20 * 1024 * 1024) {
+                          setError("File is too large. Maximum size is 20MB.");
+                          return;
+                        }
+                        setUploading(true);
+                        setError("");
+                        const result = await uploadAssignmentFile(
+                          file,
+                          `submissions/${params.id}`
+                        );
+                        if (result) {
+                          setFileUrl(result.url);
+                          setFileName(file.name);
+                        } else {
+                          setError("File upload failed. Please try again.");
+                        }
+                        setUploading(false);
+                      }}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Upload your file to Google Drive, OneDrive, or similar
-                      service and paste the sharing link here.
+                      Accepted formats: PDF, DOCX, PPTX, JPG, PNG (max 20MB)
                     </p>
+                    {uploading && (
+                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Uploading file...
+                      </p>
+                    )}
+                    {fileName && !uploading && (
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-green-600 flex items-center gap-2">
+                          <CheckCircle className="h-3 w-3" /> {fileName}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFileUrl("");
+                            setFileName("");
+                            // Reset file input
+                            const input = document.getElementById("fileUpload") as HTMLInputElement;
+                            if (input) input.value = "";
+                          }}
+                          className="text-xs text-destructive hover:underline"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  <Button type="submit">
+                  <Button type="submit" disabled={uploading}>
                     <Upload className="mr-2 h-4 w-4" />
                     Save as draft
                   </Button>
@@ -628,10 +677,10 @@ export default function AssignmentDetailPage() {
                   <FileText className="h-5 w-5 text-blue-600 shrink-0" />
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">
-                      Attached file
+                      {fileName || "Attached file"}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {fileUrl}
+                    <p className="text-xs text-green-600 flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3" /> Uploaded successfully
                     </p>
                   </div>
                 </div>

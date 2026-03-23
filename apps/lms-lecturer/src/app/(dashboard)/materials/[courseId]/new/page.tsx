@@ -226,36 +226,30 @@ export default function NewMaterialPage({ params }: Props) {
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <div className="flex-1 h-px bg-border" />
-                  <span>or paste a URL directly</span>
-                  <div className="flex-1 h-px bg-border" />
-                </div>
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="contentUrl">
-                {form.type === "youtube_video"
-                  ? "YouTube URL"
-                  : form.type === "link"
-                  ? "External URL"
-                  : "File URL"}
-              </Label>
-              <Input
-                id="contentUrl"
-                value={form.contentUrl}
-                onChange={(e) => setForm({ ...form, contentUrl: e.target.value })}
-                placeholder={
-                  form.type === "youtube_video"
-                    ? "https://youtube.com/watch?v=..."
-                    : form.type === "link"
-                    ? "https://..."
-                    : "https://your-project.supabase.co/storage/v1/..."
-                }
-                required
-              />
-            </div>
+            {/* URL input only for non-uploadable types (YouTube, external link) */}
+            {!isUploadableType && (
+              <div className="space-y-2">
+                <Label htmlFor="contentUrl">
+                  {form.type === "youtube_video"
+                    ? "YouTube URL"
+                    : "External URL"}
+                </Label>
+                <Input
+                  id="contentUrl"
+                  value={form.contentUrl}
+                  onChange={(e) => setForm({ ...form, contentUrl: e.target.value })}
+                  placeholder={
+                    form.type === "youtube_video"
+                      ? "https://youtube.com/watch?v=..."
+                      : "https://..."
+                  }
+                  required
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="sortOrder">Sort Order</Label>

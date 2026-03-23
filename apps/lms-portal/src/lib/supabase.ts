@@ -31,6 +31,33 @@ export async function uploadDocument(
   return { url: urlData.publicUrl, path: fileName };
 }
 
+export async function uploadAssignmentFile(
+  file: File,
+  folder: string
+): Promise<{ url: string; path: string; fileName: string } | null> {
+  const ext = file.name.split(".").pop();
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const filePath = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from("assignment-submissions")
+    .upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: false,
+    });
+
+  if (error) {
+    console.error("Upload error:", error);
+    return null;
+  }
+
+  const { data: urlData } = supabase.storage
+    .from("assignment-submissions")
+    .getPublicUrl(filePath);
+
+  return { url: urlData.publicUrl, path: filePath, fileName: safeName };
+}
+
 export async function deleteDocument(path: string): Promise<boolean> {
   const { error } = await supabase.storage
     .from("application-documents")
