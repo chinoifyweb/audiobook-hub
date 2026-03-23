@@ -107,7 +107,7 @@ export async function POST(request: Request) {
                 studentId,
                 courseAssignmentId: ca.id,
                 semesterId: activeSemester.id,
-                status: "active",
+                status: "enrolled",
               },
             });
             enrolledCount++;

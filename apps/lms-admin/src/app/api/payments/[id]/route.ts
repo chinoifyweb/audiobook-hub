@@ -74,7 +74,7 @@ export async function PATCH(
                   studentId: payment.studentId,
                   courseAssignmentId: ca.id,
                   semesterId: activeSemester.id,
-                  status: "active",
+                  status: "enrolled",
                 },
               });
               enrolledCount++;

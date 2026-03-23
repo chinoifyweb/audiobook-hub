@@ -53,7 +53,7 @@ async function autoEnrollStudent(studentId: string, tuitionFeeId: string) {
             studentId,
             courseAssignmentId: ca.id,
             semesterId: activeSemester.id,
-            status: "active",
+            status: "enrolled",
           },
         });
         enrolled++;
