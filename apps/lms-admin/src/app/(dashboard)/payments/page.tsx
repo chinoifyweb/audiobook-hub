@@ -128,7 +128,6 @@ export default function AdminPaymentsPage() {
   const [showManualForm, setShowManualForm] = useState(false);
   const [manualForm, setManualForm] = useState({
     studentId: "",
-    tuitionFeeId: "",
     amount: "",
     notes: "",
   });
@@ -202,7 +201,7 @@ export default function AdminPaymentsPage() {
       if (res.ok) {
         setMessage({ type: "success", text: "Manual payment recorded successfully" });
         setShowManualForm(false);
-        setManualForm({ studentId: "", tuitionFeeId: "", amount: "", notes: "" });
+        setManualForm({ studentId: "", amount: "", notes: "" });
         fetchPayments();
       } else {
         setMessage({ type: "error", text: data.error || "Failed to record payment" });
@@ -381,24 +380,24 @@ export default function AdminPaymentsPage() {
           <CardContent>
             <form onSubmit={handleManualPayment} className="space-y-4 max-w-lg">
               <div className="space-y-2">
-                <Label htmlFor="studentId">Student Profile ID</Label>
-                <Input
+                <Label htmlFor="studentId">Student</Label>
+                <select
                   id="studentId"
-                  placeholder="Student profile ID (from student profiles)"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   value={manualForm.studentId}
                   onChange={(e) => setManualForm({ ...manualForm, studentId: e.target.value })}
                   required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tuitionFeeId">Tuition Fee ID</Label>
-                <Input
-                  id="tuitionFeeId"
-                  placeholder="Tuition fee ID"
-                  value={manualForm.tuitionFeeId}
-                  onChange={(e) => setManualForm({ ...manualForm, tuitionFeeId: e.target.value })}
-                  required
-                />
+                >
+                  <option value="">Select a student...</option>
+                  {payments.map((p) => (
+                    <option key={p.studentId} value={p.studentId}>
+                      {p.studentName} ({p.studentEmail})
+                    </option>
+                  )).filter((v, i, a) => a.findIndex(t => t.key === v.key) === i)}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  Tuition fee will be auto-detected based on the student&apos;s program.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="manualAmount">Amount ({"\u20A6"})</Label>

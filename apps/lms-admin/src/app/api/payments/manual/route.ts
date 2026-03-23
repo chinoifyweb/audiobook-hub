@@ -9,24 +9,45 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { studentId, tuitionFeeId, amount, notes } = body;
 
-    if (!studentId || !tuitionFeeId || !amount) {
+    if (!studentId || !amount) {
       return NextResponse.json(
-        { error: "Student ID, tuition fee ID, and amount are required" },
+        { error: "Student ID and amount are required" },
         { status: 400 }
       );
     }
 
-    // Verify student and fee exist
-    const [student, fee] = await Promise.all([
-      prisma.studentProfile.findUnique({ where: { id: studentId } }),
-      prisma.tuitionFee.findUnique({ where: { id: tuitionFeeId } }),
-    ]);
+    // Verify student exists
+    const student = await prisma.studentProfile.findUnique({
+      where: { id: studentId },
+      select: { id: true, programId: true },
+    });
 
     if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
-    if (!fee) {
-      return NextResponse.json({ error: "Tuition fee not found" }, { status: 404 });
+
+    // Find tuition fee — use provided ID or auto-find for student's program
+    let feeId = tuitionFeeId;
+    if (!feeId) {
+      const activeSemester = await prisma.semester.findFirst({
+        where: { isActive: true },
+      });
+
+      const autoFee = await prisma.tuitionFee.findFirst({
+        where: {
+          programId: student.programId,
+          isActive: true,
+          ...(activeSemester ? { semesterId: activeSemester.id } : {}),
+        },
+      });
+
+      if (!autoFee) {
+        return NextResponse.json(
+          { error: "No tuition fee found for this student's program. Please create one in Fees management first." },
+          { status: 404 }
+        );
+      }
+      feeId = autoFee.id;
     }
 
     const reference = `ADMIN-${crypto.randomBytes(8).toString("hex")}`;
@@ -34,7 +55,7 @@ export async function POST(request: Request) {
     await prisma.tuitionPayment.create({
       data: {
         studentId,
-        tuitionFeeId,
+        tuitionFeeId: feeId,
         amount: parseInt(String(amount), 10),
         paystackReference: reference,
         status: "successful",
