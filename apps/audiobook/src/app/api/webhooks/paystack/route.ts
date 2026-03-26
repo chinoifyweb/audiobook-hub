@@ -1,0 +1,371 @@
+import { NextResponse } from "next/server";
+import { verifyWebhookSignature, verifyTransaction } from "@repo/paystack";
+import { prisma } from "@repo/db";
+import { sendEmail } from "@repo/email";
+import {
+  purchaseConfirmationEmail,
+  newSaleEmail,
+  subscriptionActivatedEmail,
+  subscriptionCancelledEmail,
+} from "@/../emails/templates";
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.text();
+    const signature = req.headers.get("x-paystack-signature");
+
+    if (!signature || !verifyWebhookSignature(body, signature)) {
+      return NextResponse.json(
+        { error: "Invalid signature" },
+        { status: 401 }
+      );
+    }
+
+    const event = JSON.parse(body);
+    const { event: eventType, data } = event;
+
+    switch (eventType) {
+      case "charge.success":
+        await handleChargeSuccess(data);
+        break;
+      case "subscription.create":
+        await handleSubscriptionCreate(data);
+        break;
+      case "subscription.disable":
+        await handleSubscriptionDisable(data);
+        break;
+      case "subscription.not_renew":
+        await handleSubscriptionNotRenew(data);
+        break;
+      case "transfer.success":
+        await handleTransferSuccess(data);
+        break;
+      case "transfer.failed":
+        await handleTransferFailed(data);
+        break;
+      default:
+        console.log(`Unhandled Paystack event: ${eventType}`);
+    }
+
+    return NextResponse.json({ received: true });
+  } catch (error) {
+    console.error("Webhook error:", error);
+    // Return 200 even on errors to prevent Paystack from retrying
+    // Log the error for investigation
+    return NextResponse.json({ received: true });
+  }
+}
+
+// ─── charge.success ──────────────────────────────────────────────────────────
+
+async function handleChargeSuccess(data: Record<string, unknown>) {
+  const reference = data.reference as string;
+  const metadata = data.metadata as Record<string, unknown> | undefined;
+
+  if (!reference) return;
+
+  // Verify the transaction with Paystack to ensure authenticity
+  let verification;
+  try {
+    verification = await verifyTransaction(reference);
+  } catch {
+    console.error(
+      `Failed to verify transaction ${reference} with Paystack API`
+    );
+    return;
+  }
+
+  if (verification.data.status !== "success") return;
+
+  // Determine if this is a book purchase or subscription payment
+  const type = metadata?.type as string | undefined;
+
+  if (type === "book_purchase") {
+    await processBookPurchase(reference, data);
+  } else if (type === "subscription") {
+    // Subscription charges are handled by subscription.create event
+    // But we can still update the subscription status here for renewals
+    await processSubscriptionCharge(data);
+  }
+}
+
+async function processBookPurchase(
+  reference: string,
+  data: Record<string, unknown>
+) {
+  // Idempotency: check if already processed
+  const purchase = await prisma.purchase.findUnique({
+    where: { paystackReference: reference },
+  });
+
+  if (!purchase || purchase.status === "successful") {
+    return; // Already processed or not found
+  }
+
+  await prisma.$transaction([
+    prisma.purchase.update({
+      where: { id: purchase.id },
+      data: {
+        status: "successful",
+        paystackTransactionId: String(data.id),
+        purchasedAt: new Date(),
+      },
+    }),
+    prisma.userLibrary.upsert({
+      where: {
+        userId_bookId: {
+          userId: purchase.userId,
+          bookId: purchase.bookId,
+        },
+      },
+      create: {
+        userId: purchase.userId,
+        bookId: purchase.bookId,
+        accessType: "purchased",
+      },
+      update: {
+        accessType: "purchased",
+      },
+    }),
+    // Update author earnings
+    prisma.authorProfile.updateMany({
+      where: {
+        books: {
+          some: { id: purchase.bookId },
+        },
+      },
+      data: {
+        totalEarnings: {
+          increment: purchase.authorEarnings,
+        },
+      },
+    }),
+  ]);
+
+  // Send purchase confirmation email to customer
+  const purchaseUser = await prisma.user.findUnique({ where: { id: purchase.userId } });
+  const purchaseBook = await prisma.book.findUnique({
+    where: { id: purchase.bookId },
+    include: { author: { include: { user: { select: { email: true } } } } },
+  });
+
+  if (purchaseUser && purchaseBook) {
+    const amountFormatted = `\u20A6${(Number(purchase.amountPaid) / 100).toLocaleString()}`;
+    const dateFormatted = new Date().toLocaleDateString('en-NG', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+
+    await sendEmail({
+      to: purchaseUser.email,
+      subject: `Purchase Confirmed: ${purchaseBook.title}`,
+      html: purchaseConfirmationEmail(purchaseUser.fullName || 'Customer', purchaseBook.title, amountFormatted, dateFormatted),
+    }).catch((err) => console.error('Failed to send purchase confirmation email:', err));
+
+    // Notify author of new sale
+    if (purchaseBook.author?.user?.email) {
+      const authorEarningsFormatted = `\u20A6${(Number(purchase.authorEarnings) / 100).toLocaleString()}`;
+      await sendEmail({
+        to: purchaseBook.author.user.email,
+        subject: `New Sale: ${purchaseBook.title}`,
+        html: newSaleEmail(
+          purchaseBook.author.penName || 'Author',
+          purchaseBook.title,
+          authorEarningsFormatted
+        ),
+      }).catch((err) => console.error('Failed to send new sale email:', err));
+    }
+  }
+}
+
+async function processSubscriptionCharge(data: Record<string, unknown>) {
+  const customer = data.customer as Record<string, unknown> | undefined;
+  if (!customer?.email) return;
+
+  const user = await prisma.user.findUnique({
+    where: { email: customer.email as string },
+  });
+
+  if (!user) return;
+
+  // Update the subscription period on successful renewal charge
+  const subscription = await prisma.customerSubscription.findUnique({
+    where: { userId: user.id },
+  });
+
+  if (subscription && subscription.status === "active") {
+    await prisma.customerSubscription.update({
+      where: { id: subscription.id },
+      data: {
+        currentPeriodStart: new Date(),
+        status: "active",
+      },
+    });
+  }
+}
+
+// ─── subscription.create ─────────────────────────────────────────────────────
+
+async function handleSubscriptionCreate(data: Record<string, unknown>) {
+  const subscriptionCode = data.subscription_code as string;
+  const emailToken = data.email_token as string;
+  const customer = data.customer as Record<string, unknown>;
+  const plan = data.plan as Record<string, unknown>;
+
+  if (!customer?.email || !plan?.plan_code) return;
+
+  const user = await prisma.user.findUnique({
+    where: { email: customer.email as string },
+  });
+
+  if (!user) return;
+
+  const dbPlan = await prisma.subscriptionPlan.findFirst({
+    where: { paystackPlanCode: plan.plan_code as string },
+  });
+
+  if (!dbPlan) return;
+
+  // Idempotency: check if subscription with this code already exists
+  const existing = await prisma.customerSubscription.findFirst({
+    where: { paystackSubscriptionCode: subscriptionCode },
+  });
+
+  if (existing && existing.status === "active") {
+    return; // Already processed
+  }
+
+  await prisma.customerSubscription.upsert({
+    where: { userId: user.id },
+    create: {
+      userId: user.id,
+      planId: dbPlan.id,
+      paystackSubscriptionCode: subscriptionCode,
+      paystackEmailToken: emailToken,
+      status: "active",
+      currentPeriodStart: new Date(),
+      nextPaymentDate: data.next_payment_date
+        ? new Date(data.next_payment_date as string)
+        : null,
+    },
+    update: {
+      planId: dbPlan.id,
+      paystackSubscriptionCode: subscriptionCode,
+      paystackEmailToken: emailToken,
+      status: "active",
+      currentPeriodStart: new Date(),
+      cancelledAt: null,
+      nextPaymentDate: data.next_payment_date
+        ? new Date(data.next_payment_date as string)
+        : null,
+    },
+  });
+
+  // Send subscription activated email
+  const nextBilling = data.next_payment_date
+    ? new Date(data.next_payment_date as string).toLocaleDateString('en-NG', {
+        year: 'numeric', month: 'long', day: 'numeric',
+      })
+    : 'N/A';
+
+  await sendEmail({
+    to: user.email,
+    subject: 'Subscription Activated!',
+    html: subscriptionActivatedEmail(user.fullName || 'Customer', dbPlan.name, nextBilling),
+  }).catch((err) => console.error('Failed to send subscription activated email:', err));
+}
+
+// ─── subscription.disable ────────────────────────────────────────────────────
+
+async function handleSubscriptionDisable(data: Record<string, unknown>) {
+  const subscriptionCode = data.subscription_code as string;
+
+  if (!subscriptionCode) return;
+
+  // Idempotency: only update if not already cancelled
+  const subToCancel = await prisma.customerSubscription.findFirst({
+    where: {
+      paystackSubscriptionCode: subscriptionCode,
+      status: { not: "cancelled" },
+    },
+    include: {
+      user: { select: { email: true, fullName: true } },
+      plan: { select: { name: true } },
+    },
+  });
+
+  if (subToCancel) {
+    await prisma.customerSubscription.update({
+      where: { id: subToCancel.id },
+      data: {
+        status: "cancelled",
+        cancelledAt: new Date(),
+      },
+    });
+
+    // Send subscription cancelled email
+    const endDate = subToCancel.currentPeriodEnd
+      ? new Date(subToCancel.currentPeriodEnd).toLocaleDateString('en-NG', {
+          year: 'numeric', month: 'long', day: 'numeric',
+        })
+      : 'end of current billing period';
+
+    await sendEmail({
+      to: subToCancel.user.email,
+      subject: 'Subscription Cancelled',
+      html: subscriptionCancelledEmail(
+        subToCancel.user.fullName || 'Customer',
+        subToCancel.plan?.name || 'Your Plan',
+        endDate
+      ),
+    }).catch((err) => console.error('Failed to send subscription cancelled email:', err));
+  }
+}
+
+// ─── subscription.not_renew ──────────────────────────────────────────────────
+
+async function handleSubscriptionNotRenew(data: Record<string, unknown>) {
+  const subscriptionCode = data.subscription_code as string;
+
+  if (!subscriptionCode) return;
+
+  await prisma.customerSubscription.updateMany({
+    where: {
+      paystackSubscriptionCode: subscriptionCode,
+      status: { not: "non_renewing" },
+    },
+    data: { status: "non_renewing" },
+  });
+}
+
+// ─── transfer.success ────────────────────────────────────────────────────────
+
+async function handleTransferSuccess(data: Record<string, unknown>) {
+  const reference = data.reference as string;
+
+  if (!reference) return;
+
+  // Idempotency: only update if not already paid
+  await prisma.authorPayout.updateMany({
+    where: {
+      paystackTransferReference: reference,
+      status: { not: "paid" },
+    },
+    data: { status: "paid", paidAt: new Date() },
+  });
+}
+
+// ─── transfer.failed ─────────────────────────────────────────────────────────
+
+async function handleTransferFailed(data: Record<string, unknown>) {
+  const reference = data.reference as string;
+
+  if (!reference) return;
+
+  await prisma.authorPayout.updateMany({
+    where: {
+      paystackTransferReference: reference,
+      status: { not: "failed" },
+    },
+    data: { status: "failed" },
+  });
+}
