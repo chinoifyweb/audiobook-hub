@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Programs",
   description:
-    "Explore our 12 academic programmes: 4 Bachelor of Arts degrees, PGD in Theology, 6 Master of Arts specialisations, and the Master of Divinity.",
+    "Explore our 7 academic programmes: 2 Bachelor of Arts degrees, PGD in Theology, 3 Master of Arts specialisations, and the Master of Divinity.",
 };
 
 interface ProgramData {
@@ -31,188 +31,113 @@ interface ProgramData {
 }
 
 const placeholderPrograms: ProgramData[] = [
-  // Bachelor of Arts Programmes (120 Credits | 4 Years)
+  // Bachelor of Arts Programmes (90 Credits | 4 Years | 30 Courses)
   {
     id: "1",
     name: "B.A. Pastoral Ministry",
-    code: "BA-PM",
+    code: "BA-PM-V2",
     description:
-      "Blending the homiletics and pastoral care of classical seminary with pneumatological depth, faith principles, prayer-and-power DNA, plus social media ministry, content creation, and AI-era church leadership.",
+      "A comprehensive four-year programme equipping students for effective pastoral ministry through rigorous biblical studies, theological reflection, homiletics, pastoral care, and practical church leadership. 22 core courses plus 8 electives.",
     degreeType: "bachelors",
     durationSemesters: 8,
-    totalCredits: 120,
-    tuitionPerSemester: 0,
+    totalCredits: 90,
+    tuitionPerSemester: 7500000,
     department: {
-      name: "Department of Pastoral Studies",
-      faculty: { name: "Faculty of Theology" },
+      name: "Department of Pastoral Ministry",
+      faculty: { name: "Faculty of Ministry & Practical Studies" },
     },
   },
   {
     id: "2",
-    name: "B.A. Missions & Intercultural Studies",
-    code: "BA-MIS",
-    description:
-      "Cross-cultural ministry, missionary service, and global outreach. Blends missiology and cultural anthropology with digital evangelism, social media, Business as Mission, and AI translation tools. Emphasis on Africa's strategic role in global missions.",
-    degreeType: "bachelors",
-    durationSemesters: 8,
-    totalCredits: 120,
-    tuitionPerSemester: 0,
-    department: {
-      name: "Department of Missions",
-      faculty: { name: "Faculty of Theology" },
-    },
-  },
-  {
-    id: "3",
-    name: "B.A. Children & Youth Ministry",
-    code: "BA-CYM",
-    description:
-      "Combines developmental psychology, creative programming, social media strategy, and digital discipleship with strong spiritual formation. Emphasis on engaging Gen-Z/Alpha through content creation, gamification, and online community.",
-    degreeType: "bachelors",
-    durationSemesters: 8,
-    totalCredits: 120,
-    tuitionPerSemester: 0,
-    department: {
-      name: "Department of Ministry Studies",
-      faculty: { name: "Faculty of Theology" },
-    },
-  },
-  {
-    id: "4",
     name: "B.A. Christian Education",
-    code: "BA-CE",
+    code: "BA-CE-V2",
     description:
-      "Teaching, curriculum development, e-learning design, and Christian school administration. Integrates pedagogy, educational technology, AI tools, and biblical worldview with strong emphasis on online course development and marketplace training.",
+      "A four-year programme preparing students to teach, design curricula, and lead educational ministries in churches, schools, and community settings with a strong biblical foundation. 22 core courses plus 8 electives.",
     degreeType: "bachelors",
     durationSemesters: 8,
-    totalCredits: 120,
-    tuitionPerSemester: 0,
+    totalCredits: 90,
+    tuitionPerSemester: 7500000,
     department: {
-      name: "Department of Christian Education",
-      faculty: { name: "Faculty of Education" },
+      name: "Department of Missions & Education",
+      faculty: { name: "Faculty of Ministry & Practical Studies" },
     },
   },
   // Postgraduate Diploma
   {
-    id: "5",
+    id: "3",
     name: "PGD in Theology",
-    code: "PGD-THEO",
+    code: "PGD-THEO-V2",
     description:
-      "A one-year bridge programme for graduates of any discipline seeking to enter theological studies. Credits are transferable to M.A. programmes. Covers foundational theology, biblical studies, and ministry preparation.",
+      "A one-year bridge programme for graduates of any discipline seeking to enter theological studies. 8 courses covering advanced hermeneutics, research methods, contemporary and biblical theology. Credits are transferable to M.A. programmes.",
     degreeType: "pgd",
     durationSemesters: 2,
-    totalCredits: 36,
-    tuitionPerSemester: 0,
+    totalCredits: 24,
+    tuitionPerSemester: 10000000,
     department: {
-      name: "Department of Systematic Theology",
-      faculty: { name: "Faculty of Theology" },
+      name: "Department of Postgraduate Studies",
+      faculty: { name: "Faculty of Postgraduate Studies" },
     },
   },
-  // Master of Arts Programmes
+  // Master of Arts Programmes (36 Credits | 2 Years | 12 Courses)
+  {
+    id: "4",
+    name: "M.A. Systematic Theology",
+    code: "MA-ST-V2",
+    description:
+      "A two-year programme offering advanced study of Christian doctrine through historical, biblical, and philosophical perspectives. Prepares for doctoral studies, seminary teaching, and theological writing. 12 courses.",
+    degreeType: "masters",
+    durationSemesters: 4,
+    totalCredits: 36,
+    tuitionPerSemester: 12500000,
+    department: {
+      name: "Department of Postgraduate Studies",
+      faculty: { name: "Faculty of Postgraduate Studies" },
+    },
+  },
+  {
+    id: "5",
+    name: "M.A. Pastoral Counselling",
+    code: "MA-PC-V2",
+    description:
+      "A two-year programme integrating theology with psychology for effective soul care in churches, hospitals, and community settings. Includes trauma counselling and supervised practicum hours. 12 courses.",
+    degreeType: "masters",
+    durationSemesters: 4,
+    totalCredits: 36,
+    tuitionPerSemester: 12500000,
+    department: {
+      name: "Department of Postgraduate Studies",
+      faculty: { name: "Faculty of Postgraduate Studies" },
+    },
+  },
   {
     id: "6",
-    name: "M.A. Systematic Theology",
-    code: "MA-ST",
+    name: "M.A. Christian Leadership",
+    code: "MA-CL-V2",
     description:
-      "Advanced Christian doctrine through historical, biblical, pneumatological, and philosophical perspectives. Engages Patristic, Reformed, Pentecostal, and African traditions. Prepares for doctoral studies, seminary teaching, and theological writing.",
+      "A two-year programme developing transformational leaders for churches, ministries, and marketplace contexts through theological reflection, leadership theory, and governance best practices. 12 courses.",
     degreeType: "masters",
     durationSemesters: 4,
-    totalCredits: 48,
-    tuitionPerSemester: 0,
+    totalCredits: 36,
+    tuitionPerSemester: 12500000,
     department: {
-      name: "Department of Systematic Theology",
-      faculty: { name: "Faculty of Theology" },
+      name: "Department of Postgraduate Studies",
+      faculty: { name: "Faculty of Postgraduate Studies" },
     },
   },
+  // Master of Divinity (45 Credits | 3 Years | 15 Courses)
   {
     id: "7",
-    name: "M.A. Pastoral Counselling",
-    code: "MA-PC",
-    description:
-      "Integrates theology with psychology for soul care. Equips for pastoral care in churches, hospitals, workplaces, and online. Includes tele-counselling, workplace chaplaincy, and mental health ministry. 200-hour practicum.",
-    degreeType: "masters",
-    durationSemesters: 4,
-    totalCredits: 48,
-    tuitionPerSemester: 0,
-    department: {
-      name: "Department of Counselling",
-      faculty: { name: "Faculty of Ministry" },
-    },
-  },
-  {
-    id: "8",
-    name: "M.A. Church Administration",
-    code: "MA-CA",
-    description:
-      "Managerial, financial, legal, digital, and organisational competencies for church governance. Blends theology with nonprofit management, digital operations, AI analytics, social media branding, and marketplace equipping. 150-hour field placement.",
-    degreeType: "masters",
-    durationSemesters: 4,
-    totalCredits: 48,
-    tuitionPerSemester: 0,
-    department: {
-      name: "Department of Church Administration",
-      faculty: { name: "Faculty of Ministry" },
-    },
-  },
-  {
-    id: "9",
-    name: "M.A. Christian Counselling",
-    code: "MA-CC",
-    description:
-      "The most intensive counselling programme. Integrates biblical wisdom with contemporary counselling theory, psychopathology, and clinical skills. 300-hour supervised experience. Includes digital counselling, workplace stress, and mental health ministry.",
-    degreeType: "masters",
-    durationSemesters: 4,
-    totalCredits: 54,
-    tuitionPerSemester: 0,
-    department: {
-      name: "Department of Counselling",
-      faculty: { name: "Faculty of Ministry" },
-    },
-  },
-  {
-    id: "10",
-    name: "M.A. Ministry Leadership",
-    code: "MA-ML",
-    description:
-      "For pastors, church staff, and marketplace professionals. Visionary leadership, social media influence, digital transformation, marketplace ministry, entrepreneurship, and AI-powered decision-making. 120-hour practicum.",
-    degreeType: "masters",
-    durationSemesters: 3,
-    totalCredits: 42,
-    tuitionPerSemester: 0,
-    department: {
-      name: "Department of Leadership Studies",
-      faculty: { name: "Faculty of Ministry" },
-    },
-  },
-  {
-    id: "11",
-    name: "M.A. Marriage & Family Ministry",
-    code: "MA-MFM",
-    description:
-      "Addresses family crisis in church and society. Premarital preparation, marriage enrichment, family counselling, parenting in the digital age, and crisis intervention. Online family counselling, work-life balance, and social media's impact. 200-hour practicum.",
-    degreeType: "masters",
-    durationSemesters: 4,
-    totalCredits: 48,
-    tuitionPerSemester: 0,
-    department: {
-      name: "Department of Family Ministry",
-      faculty: { name: "Faculty of Ministry" },
-    },
-  },
-  // Master of Divinity
-  {
-    id: "12",
     name: "Master of Divinity (M.Div.)",
-    code: "MDIV",
+    code: "MDIV-V2",
     description:
-      "The gold-standard professional degree. 78 credits exceeding ATS minimum of 72. Covers biblical languages, systematic theology, pneumatology, homiletics, pastoral care, digital ministry, and marketplace theology.",
+      "The gold-standard three-year professional ministry degree covering biblical studies, systematic theology, pastoral care, homiletics, and supervised ministry practice. 15 courses.",
     degreeType: "masters",
     durationSemesters: 6,
-    totalCredits: 78,
-    tuitionPerSemester: 0,
+    totalCredits: 45,
+    tuitionPerSemester: 15000000,
     department: {
-      name: "Department of Advanced Theological Studies",
-      faculty: { name: "Faculty of Theology" },
+      name: "Department of Postgraduate Studies",
+      faculty: { name: "Faculty of Postgraduate Studies" },
     },
   },
 ];
@@ -292,9 +217,9 @@ export default async function ProgramsPage() {
             Academic Programmes
           </h1>
           <p className="mx-auto max-w-2xl text-blue-100">
-            12 programmes across undergraduate and postgraduate levels,
-            delivered through our hybrid model of 70% online, 20% on-campus
-            intensives, and 10% supervised practicum.
+            7 programmes across undergraduate and postgraduate levels with 48
+            courses, delivered through our hybrid model of 70% online, 20%
+            on-campus intensives, and 10% supervised practicum.
           </p>
         </div>
       </section>

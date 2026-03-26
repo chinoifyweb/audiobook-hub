@@ -13,10 +13,13 @@ export const metadata: Metadata = {
 };
 
 const tuitionTable = [
-  { programme: "B.A. Programmes (4 options)", perSemester: "\u20A675,000", total: "\u20A6600,000", duration: "8 Semesters" },
-  { programme: "PGD in Theology", perSemester: "\u20A6100,000", total: "\u20A6200,000", duration: "2 Semesters" },
-  { programme: "M.A. Programmes (6 options)", perSemester: "\u20A6125,000", total: "\u20A6375,000 - \u20A6500,000", duration: "3-4 Semesters" },
-  { programme: "Master of Divinity (M.Div.)", perSemester: "\u20A6150,000", total: "\u20A6900,000", duration: "6 Semesters" },
+  { programme: "B.A. Pastoral Ministry (30 courses)", perSemester: "\u20A675,000", total: "\u20A6600,000", duration: "8 Semesters" },
+  { programme: "B.A. Christian Education (30 courses)", perSemester: "\u20A675,000", total: "\u20A6600,000", duration: "8 Semesters" },
+  { programme: "PGD in Theology (8 courses)", perSemester: "\u20A6100,000", total: "\u20A6200,000", duration: "2 Semesters" },
+  { programme: "M.A. Systematic Theology (12 courses)", perSemester: "\u20A6125,000", total: "\u20A6500,000", duration: "4 Semesters" },
+  { programme: "M.A. Pastoral Counselling (12 courses)", perSemester: "\u20A6125,000", total: "\u20A6500,000", duration: "4 Semesters" },
+  { programme: "M.A. Christian Leadership (12 courses)", perSemester: "\u20A6125,000", total: "\u20A6500,000", duration: "4 Semesters" },
+  { programme: "Master of Divinity (15 courses)", perSemester: "\u20A6150,000", total: "\u20A6900,000", duration: "6 Semesters" },
 ];
 
 const scholarships = [

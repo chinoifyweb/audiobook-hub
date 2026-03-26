@@ -398,6 +398,7 @@ model PlatformSetting {
 enum DegreeType {
   certificate
   diploma
+  pgd
   bachelors
   masters
   phd

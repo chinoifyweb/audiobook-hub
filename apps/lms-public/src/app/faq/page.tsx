@@ -23,7 +23,7 @@ const faqs: FaqCategory[] = [
     questions: [
       {
         q: "What is Berean Bible Academy?",
-        a: "Berean Bible Academy (BBA) is an institution dedicated to providing accessible, affordable, and rigorous theological education. We offer 12 programmes: 4 Bachelor of Arts degrees, a Postgraduate Diploma in Theology, 6 Master of Arts specialisations, and the Master of Divinity (M.Div.).",
+        a: "Berean Bible Academy (BBA) is an institution dedicated to providing accessible, affordable, and rigorous theological education. We offer 7 programmes with 48 courses: 2 Bachelor of Arts degrees, a Postgraduate Diploma in Theology, 3 Master of Arts specialisations, and the Master of Divinity (M.Div.).",
       },
       {
         q: "What is BBA's motto?",
@@ -82,7 +82,7 @@ const faqs: FaqCategory[] = [
     questions: [
       {
         q: "What programmes does BBA offer?",
-        a: "We offer 12 programmes: B.A. Pastoral Ministry, B.A. Missions & Intercultural Studies, B.A. Children & Youth Ministry, B.A. Christian Education (all 120 credits, 4 years), PGD in Theology (36 credits, 1 year), M.A. Systematic Theology, M.A. Pastoral Counselling, M.A. Church Administration, M.A. Christian Counselling, M.A. Ministry Leadership, M.A. Marriage & Family Ministry (42-54 credits, 18 months to 2 years), and M.Div. (78 credits, 3 years).",
+        a: "We offer 7 programmes with 48 courses: B.A. Pastoral Ministry and B.A. Christian Education (each 90 credits, 30 courses, 4 years), PGD in Theology (24 credits, 8 courses, 1 year), M.A. Systematic Theology, M.A. Pastoral Counselling, and M.A. Christian Leadership (each 36 credits, 12 courses, 2 years), and the Master of Divinity (45 credits, 15 courses, 3 years).",
       },
       {
         q: "How many credits per semester can I take?",
@@ -111,7 +111,7 @@ const faqs: FaqCategory[] = [
       },
       {
         q: "What are the graduation requirements?",
-        a: "B.A.: Minimum CGPA 2.00, all 120 credits completed, 300 practicum hours, and thesis. PGD: Minimum CGPA 3.00, all 36 credits and research project. M.A.: Minimum CGPA 3.50, all credits, practicum, and thesis/capstone. M.Div.: Minimum CGPA 3.50, all 78 credits, 400 practicum hours, and thesis.",
+        a: "B.A.: Minimum CGPA 2.00, all 90 credits (30 courses) completed, practicum hours, and capstone project. PGD: Minimum CGPA 3.00, all 24 credits (8 courses) and research project. M.A.: Minimum CGPA 3.50, all 36 credits (12 courses), practicum, and thesis/capstone. M.Div.: Minimum CGPA 3.50, all 45 credits (15 courses), practicum hours, and thesis.",
       },
     ],
   },

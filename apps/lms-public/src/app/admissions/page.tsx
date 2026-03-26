@@ -23,7 +23,7 @@ const PORTAL_URL =
 export const metadata: Metadata = {
   title: "Admissions",
   description:
-    "Learn about admission requirements for BA, PGD, MA, and M.Div. programmes, application process, hybrid delivery model, and important dates at Berean Bible Academy.",
+    "Learn about admission requirements for our 7 programmes (BA, PGD, MA, and M.Div.), application process, hybrid delivery model, and important dates at Berean Bible Academy.",
 };
 
 const baRequirements = [

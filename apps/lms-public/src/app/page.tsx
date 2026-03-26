@@ -24,9 +24,9 @@ const PORTAL_URL =
   process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.bba.org.ng";
 
 const stats = [
-  { label: "Academic Programmes", value: "12", icon: GraduationCap },
-  { label: "B.A. Specialisations", value: "4", icon: BookOpen },
-  { label: "M.A. Specialisations", value: "6", icon: Award },
+  { label: "Academic Programmes", value: "7", icon: GraduationCap },
+  { label: "Courses Offered", value: "48", icon: BookOpen },
+  { label: "Postgraduate Tracks", value: "5", icon: Award },
   { label: "Hybrid Delivery", value: "70/20/10", icon: Globe },
 ];
 
@@ -35,37 +35,37 @@ const featuredPrograms = [
     name: "B.A. Pastoral Ministry",
     degreeType: "Bachelor's",
     duration: "4 Years (8 Semesters)",
-    credits: "120 Credits",
+    credits: "90 Credits (30 Courses)",
     description:
-      "Blending homiletics and pastoral care with pneumatological depth, social media ministry, content creation, and AI-era church leadership.",
-    href: "/programs/BA-PM",
+      "A comprehensive four-year programme equipping students for effective pastoral ministry through biblical studies, theology, homiletics, pastoral care, and practical church leadership.",
+    href: "/programs/BA-PM-V2",
+  },
+  {
+    name: "B.A. Christian Education",
+    degreeType: "Bachelor's",
+    duration: "4 Years (8 Semesters)",
+    credits: "90 Credits (30 Courses)",
+    description:
+      "Preparing students to teach, design curricula, and lead educational ministries in churches, schools, and community settings with a strong biblical foundation.",
+    href: "/programs/BA-CE-V2",
   },
   {
     name: "PGD in Theology",
     degreeType: "Postgraduate Diploma",
     duration: "1 Year (2 Semesters)",
-    credits: "36 Credits",
+    credits: "24 Credits (8 Courses)",
     description:
-      "A one-year bridge programme for graduates of any discipline seeking to enter theological studies. Credits transferable to M.A. programmes.",
-    href: "/programs/PGD-THEO",
-  },
-  {
-    name: "M.A. Systematic Theology",
-    degreeType: "Master's",
-    duration: "2 Years (4 Semesters)",
-    credits: "48 Credits",
-    description:
-      "Advanced Christian doctrine through historical, biblical, pneumatological, and philosophical perspectives. Prepares for doctoral studies and seminary teaching.",
-    href: "/programs/MA-ST",
+      "A one-year bridge programme for graduates of any discipline seeking to enter theological studies. Credits are transferable to M.A. programmes.",
+    href: "/programs/PGD-THEO-V2",
   },
   {
     name: "Master of Divinity (M.Div.)",
     degreeType: "Master's",
     duration: "3 Years (6 Semesters)",
-    credits: "78 Credits",
+    credits: "45 Credits (15 Courses)",
     description:
-      "The gold-standard professional degree covering biblical languages, systematic theology, pneumatology, homiletics, pastoral care, and digital ministry.",
-    href: "/programs/MDIV",
+      "The gold-standard professional ministry degree covering biblical studies, systematic theology, pastoral care, homiletics, and supervised ministry practice.",
+    href: "/programs/MDIV-V2",
   },
 ];
 
@@ -149,7 +149,7 @@ const testimonials = [
     quote:
       "As a missionary in a remote area, BBA made it possible for me to pursue my degree without leaving the field. The online platform is excellent.",
     name: "Rev. James Okoro",
-    program: "B.A. Missions & Intercultural Studies",
+    program: "B.A. Pastoral Ministry",
   },
 ];
 
@@ -225,9 +225,9 @@ export default function HomePage() {
               Our Programmes
             </h2>
             <p className="mx-auto max-w-2xl text-muted-foreground">
-              12 programmes across undergraduate and postgraduate levels,
-              blending sound biblical scholarship with practical ministry skills
-              and digital fluency.
+              7 programmes across undergraduate and postgraduate levels,
+              with 48 courses blending sound biblical scholarship with practical
+              ministry skills.
             </p>
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -267,7 +267,7 @@ export default function HomePage() {
           <div className="mt-8 text-center">
             <Button asChild>
               <Link href="/programs">
-                View All 12 Programmes
+                View All 7 Programmes
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
